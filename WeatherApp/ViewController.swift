@@ -11,23 +11,89 @@ import SnapKit
 
 class ViewController: UIViewController {
 
-    @IBOutlet weak var geolocationView: UILabel!
+    let blueView = UIView(frame: .zero)
+    let yellowView = UIView(frame: .zero)
+    let redView = UIView(frame: .zero)
+    let brownView = UIView(frame: .zero)
     
-    @IBOutlet weak var imageView: UIImageView!
+    // MARK: - Системные функции
     
-    @IBOutlet weak var temperatureView: UILabel!
-    
-    @IBOutlet weak var weatherOptionView: UILabel!
-    
-    @IBOutlet weak var hourlyChangesView: UILabel!
-    
-    
+        //Экран БЫЛ загружен
     override func viewDidLoad() {
         super.viewDidLoad()
         
+        view.backgroundColor = .white
         
-    }
+        
+        
+        blueView.backgroundColor = .blue
+        view.addSubview(blueView)
+        
+        blueView.snp.makeConstraints { (make) in
+            make.width.equalTo(152)
+            make.height.equalTo(27)
+            make.centerX.equalToSuperview()
+            make.centerY.equalToSuperview()
+        }
+        
+        yellowView.backgroundColor = .yellow
+            view.addSubview(yellowView)
+            
+        yellowView.snp.makeConstraints { (make) in
+            make.width.equalTo(304)
+            make.height.equalTo (123)
+            make.centerX.equalToSuperview()
+            make.centerY.equalToSuperview()
+        }
+        
+        redView.backgroundColor = .red
+            view.addSubview(redView)
+            
+        redView.snp.makeConstraints { (make) in
+            make.width.equalTo(338)
+            make.height.equalTo(48)
+            make.centerX.equalToSuperview()
+            make.centerY.equalToSuperview()
+        }
+        
+        brownView.backgroundColor = .brown
+                view.addSubview(brownView)
+                
+        brownView.snp.makeConstraints { (make) in
+                make.width.equalTo(338)
+                make.height.equalTo(218)
+                make.centerX.equalToSuperview()
+                make.centerY.equalToSuperview()
+            
+        }
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        }
+    //MARK: - Ползовательские функции
 
-
+    
+    
+    
+    
+    
+    
+    
+    
+    
 }
 
