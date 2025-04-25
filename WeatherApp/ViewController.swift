@@ -8,7 +8,8 @@
 import UIKit
 import SnapKit
 
-
+// Неиспользуемые цвета удали. Неиспозуемые файлы ( ConfigureView) тоже.
+// После фикса замечаний комментарии удаляй
 class ViewController: UIViewController {
     
     //    1. Это картинка
@@ -66,6 +67,7 @@ class ViewController: UIViewController {
         containerView.backgroundColor = .lightGray
         containerView.layer.cornerRadius = 10
         
+        // secondInfoView и thirdInfoView не являются ли пунктами 5 и 6 в списке? Мы же также можем сделать такие вью на месте объектов, которые нам не известны
         let secondInfoView = UIView()
         secondInfoView.backgroundColor = .lightGray
         secondInfoView.layer.cornerRadius = 10
@@ -81,6 +83,8 @@ class ViewController: UIViewController {
         view.addSubview(cityLabel)
         view.addSubview(temperatureLabel)
         view.addSubview(containerView)
+        
+
         view.addSubview(secondInfoView)
         view.addSubview(thirdInfoView)
         
@@ -112,7 +116,7 @@ class ViewController: UIViewController {
                 make.left.right.equalToSuperview().inset(16)
                 make.height.equalTo(200)
             }
-
+//следи за структурными отступами. Чтобы автоматически все выровнять есть хоткей Ctrl + i
             thirdInfoView.snp.makeConstraints { make in
                 make.top.equalTo(secondInfoView.snp.bottom).offset(16)
                 make.left.right.equalToSuperview().inset(16)
@@ -121,4 +125,9 @@ class ViewController: UIViewController {
         
         
     }
+    
+    //каждый элемент оформи в такую функцию, сейчас у тебя все настраивается в функции seupUI. Далее замени вызов setupUI на список подобных функций. Идея такая - одна функция - настройка одного объекта.
+    // func configureMyView() {
+    // настройка твоей вью
+    // }
 }
