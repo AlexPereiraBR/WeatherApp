@@ -8,21 +8,14 @@
 import UIKit
 import SnapKit
 
-// Неиспользуемые цвета удали. Неиспозуемые файлы ( ConfigureView) тоже.
-// После фикса замечаний комментарии удаляй
 class ViewController: UIViewController {
     
-    //    1. Это картинка
-    //    2. Название города
-    //    3. Температура
-    //    4. Какие то данные о погоде
-    //    5. График
-    //    6. Еще какие то данные о погоде
     
-    // 1
+    
+    // 1. Картина погоды
     var weatherImageView = UIImageView()
     
-    // 2
+    // 2. Название города
     let cityLabel = UILabel()
     
     // 3 - Температура
@@ -33,101 +26,110 @@ class ViewController: UIViewController {
         label.text = "25"
         return label
     }()
+    
     // 4 - Другие данные UIView
     let containerView: UIView = {
         let view = UIView()
-        view.backgroundColor = .lightGray // Цвет для визуализации
+        view.backgroundColor = .lightGray
         view.layer.cornerRadius = 10
         return view
     }()
-    // 5. График
     
+    // 5. График
+    let weatherChartView = UIView()
+    
+    // 6. Дополнительная информация
+    let additionalInfoView = UIView()
     
     // MARK: - Системные функции
     
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .white
-        setupUI()
+        
+        configureWeatherImageView()
+        configureCityLabel()
+        configureTemperatureLabel()
+        configureContainerView()
+        configureWeatherChartView()
+        configureAdditionalInfoView()
+        
     }
-
-    func setupUI() {
-        // Настройка элементов
+    
+    //Настройка изображкения погоды (Пункт 1)
+    func configureWeatherImageView() {
         weatherImageView.image = UIImage(named: "Sunny")
         weatherImageView.contentMode = .scaleAspectFit
-
-        cityLabel.text = "Москва"
-        cityLabel.textAlignment = .center
-        cityLabel.font = UIFont.systemFont(ofSize: 20, weight: .medium)
-
-        temperatureLabel.text = "25°"
-        temperatureLabel.textAlignment = .center
-        temperatureLabel.font = UIFont.boldSystemFont(ofSize: 48)
-
-        containerView.backgroundColor = .lightGray
-        containerView.layer.cornerRadius = 10
-        
-        // secondInfoView и thirdInfoView не являются ли пунктами 5 и 6 в списке? Мы же также можем сделать такие вью на месте объектов, которые нам не известны
-        let secondInfoView = UIView()
-        secondInfoView.backgroundColor = .lightGray
-        secondInfoView.layer.cornerRadius = 10
-        
-        let thirdInfoView = UIView()
-        thirdInfoView.backgroundColor = .lightGray
-        thirdInfoView.layer.cornerRadius = 10
-        
-    
-
-        // Добавление элементов на экран
         view.addSubview(weatherImageView)
-        view.addSubview(cityLabel)
-        view.addSubview(temperatureLabel)
-        view.addSubview(containerView)
         
-
-        view.addSubview(secondInfoView)
-        view.addSubview(thirdInfoView)
-        
-        // Расстановка с помощью SnapKit
         weatherImageView.snp.makeConstraints { make in
-            make.top.equalTo(view.safeAreaLayoutGuide).offset(32)
+            make.top.equalTo(view.safeAreaLayoutGuide).offset(40)
             make.centerX.equalToSuperview()
-            make.width.height.equalTo(100)
+            make.width.height.equalTo(120)
         }
-
-        cityLabel.snp.makeConstraints { make in
-            make.top.equalTo(weatherImageView.snp.bottom).offset(16)
-            make.centerX.equalToSuperview()
-        }
-
-        temperatureLabel.snp.makeConstraints { make in
-            make.top.equalTo(cityLabel.snp.bottom).offset(8)
-            make.centerX.equalToSuperview()
-        }
-
-        containerView.snp.makeConstraints { make in
-            make.top.equalTo(temperatureLabel.snp.bottom).offset(32)
-            make.left.right.equalToSuperview().inset(16)
-            make.height.equalTo(100)
-        }
-
-        secondInfoView.snp.makeConstraints { make in
-                make.top.equalTo(containerView.snp.bottom).offset(16)
-                make.left.right.equalToSuperview().inset(16)
-                make.height.equalTo(200)
-            }
-//следи за структурными отступами. Чтобы автоматически все выровнять есть хоткей Ctrl + i
-            thirdInfoView.snp.makeConstraints { make in
-                make.top.equalTo(secondInfoView.snp.bottom).offset(16)
-                make.left.right.equalToSuperview().inset(16)
-                make.height.equalTo(100)
-            }
-        
-        
     }
     
-    //каждый элемент оформи в такую функцию, сейчас у тебя все настраивается в функции seupUI. Далее замени вызов setupUI на список подобных функций. Идея такая - одна функция - настройка одного объекта.
-    // func configureMyView() {
-    // настройка твоей вью
-    // }
+    //Настройка названия города (Пункт 2)
+    func configureCityLabel() {
+        cityLabel.text = "Москва"
+        cityLabel.textAlignment = .center
+        cityLabel.font = UIFont.systemFont(ofSize: 24, weight: .semibold)
+        view.addSubview(cityLabel)
+        
+        cityLabel.snp.makeConstraints { make in
+            make.top.equalTo(weatherImageView.snp.bottom).offset(20)
+            make.centerX.equalToSuperview()
+        }
+    }
+    
+    //Настройка отображения температуры (Пункт 3)
+    func configureTemperatureLabel() {
+        temperatureLabel.text = "25°C"
+        temperatureLabel.textAlignment = .center
+        temperatureLabel.font = UIFont.boldSystemFont(ofSize: 48)
+        view.addSubview(temperatureLabel)
+        
+        temperatureLabel.snp.makeConstraints { make in
+            make.top.equalTo(cityLabel.snp.bottom).offset(12)
+            make.centerX.equalToSuperview()
+        }
+    }
+    //Настройка контейнера с дополнительной погодной информацией (пункт 4)
+    func configureContainerView() {
+        containerView.backgroundColor = .lightGray
+        containerView.layer.cornerRadius = 10
+        view.addSubview(containerView)
+        
+        temperatureLabel.snp.makeConstraints { make in
+            make.top.equalTo(cityLabel.snp.bottom).offset(32)
+            make.left.right.equalToSuperview().inset(24)
+            make.height.equalTo(120)
+        }
+    }
+   // Настройка контейнера с дополнительной погодной инфолрмацией (Пункт 5)
+    func configureWeatherChartView() {
+        weatherChartView.backgroundColor = .lightGray
+        weatherChartView.layer.cornerRadius = 10
+        view.addSubview(weatherChartView)
+        
+        weatherChartView.snp.makeConstraints { make in
+            make.top.equalTo(containerView.snp.bottom).offset(400)
+            make.left.right.equalToSuperview().inset(24)
+            make.height.equalTo(220)
+        }
+    }
+    // Настройка блока с дополнительной информацией (пункт 6)
+    func configureAdditionalInfoView() {
+        additionalInfoView.backgroundColor = .lightGray
+        additionalInfoView.layer.cornerRadius = 10
+        view.addSubview(additionalInfoView)
+        
+        additionalInfoView.snp.makeConstraints { make in
+            make.top.equalTo(weatherChartView.snp.bottom).offset(24)
+            make.left.right.equalToSuperview().inset(24)
+            make.height.equalTo(140)
+        }
+    }
+    
 }
+    
