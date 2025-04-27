@@ -88,7 +88,7 @@ class ViewController: UIViewController {
         temperatureLabel.font = UIFont.boldSystemFont(ofSize: 48)
         view.addSubview(temperatureLabel)
         
-        containerView.snp.makeConstraints { make in
+        temperatureLabel.snp.makeConstraints { make in
             make.top.equalTo(cityLabel.snp.bottom).offset(12)
             make.centerX.equalToSuperview()
         }
@@ -106,7 +106,7 @@ class ViewController: UIViewController {
         
         view.addSubview(containerView)
         
-        containerView.snp.makeConstraints { make in
+        temperatureLabel.snp.makeConstraints { make in
             make.top.equalTo(cityLabel.snp.bottom).offset(32)
             make.left.right.equalToSuperview().inset(24)
             make.height.equalTo(120)
