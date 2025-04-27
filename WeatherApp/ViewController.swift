@@ -21,26 +21,23 @@ class ViewController: UIViewController {
     let weatherChartView = UIView()
     let additionalInfoView = UIView()
     
+    // MARK: - Model
+    
+    var model = WeatherModel(
+        temperature: "25",
+        city: "Москва",
+        weatherIconName: "Sunny")
+    
     // MARK: - Lifecycle
     
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .main
-        //Изначальная прозрачность
-        weatherImageView.alpha = 0
-        cityLabel.alpha = 0
-        temperatureLabel.alpha = 0
-        containerView.alpha = 0
-        weatherChartView.alpha = 0
-        additionalInfoView.alpha = 0
-        //Добавлен вертикальный сдвиг
-        weatherImageView.transform = CGAffineTransform(translationX: 0, y: 30)
-        cityLabel.transform = CGAffineTransform(translationX: 0, y: 30)
-        temperatureLabel.transform = CGAffineTransform(translationX: 0, y: 30)
-        containerView.transform = CGAffineTransform(translationX: 0, y: 30)
-        weatherChartView.transform = CGAffineTransform(translationX: 0, y: 30)
-        additionalInfoView.transform = CGAffineTransform(translationX: 0, y: 30)
         
+        
+        setupInitialAppearance()
+        
+
         configureWeatherImageView()
         configureCityLabel()
         configureTemperatureLabel()
@@ -50,14 +47,24 @@ class ViewController: UIViewController {
         
         //Активируем появление
         animateAppearance()
+        }
+    
+    // MARK: - Setup Appearance
+    
+    func setupInitialAppearance() {
+        let views = [weatherImageView, cityLabel, temperatureLabel, containerView, weatherChartView, additionalInfoView]
         
+        views.forEach {
+            $0.alpha = 0
+            $0.transform = CGAffineTransform(translationX: 0, y: 30)
+        }
     }
     
     // MARK: - UI Configuration
     
     //Настройка изображкения погоды (Пункт 1)
     func configureWeatherImageView() {
-        weatherImageView.image = UIImage(named: "Sunny")
+        weatherImageView.image = UIImage(named: model.weatherIconName)
         weatherImageView.contentMode = .scaleAspectFit
         view.addSubview(weatherImageView)
         
@@ -70,7 +77,7 @@ class ViewController: UIViewController {
     
     //Настройка названия города (Пункт 2)
     func configureCityLabel() {
-        cityLabel.text = "Москва"
+        cityLabel.text = model.city
         cityLabel.textAlignment = .center
         cityLabel.font = UIFont.systemFont(ofSize: 24, weight: .semibold)
         view.addSubview(cityLabel)
@@ -83,7 +90,7 @@ class ViewController: UIViewController {
     
     //Настройка отображения температуры (Пункт 3)
     func configureTemperatureLabel() {
-        temperatureLabel.text = "25°C"
+        temperatureLabel.text = "\(model.temperature)°C"
         temperatureLabel.textAlignment = .center
         temperatureLabel.font = UIFont.boldSystemFont(ofSize: 48)
         view.addSubview(temperatureLabel)
@@ -150,24 +157,16 @@ class ViewController: UIViewController {
             make.height.equalTo(140)
         }
     }
-    //Добавили функию анимации
+    
     func animateAppearance() {
         UIView.animate(withDuration: 1.0, delay: 0.2, options: [.curveEaseOut], animations: {
-            //Прозрачность элементов
-            self.weatherImageView.alpha = 1
-            self.cityLabel.alpha = 1
-            self.temperatureLabel.alpha = 1
-            self.containerView.alpha = 1
-            self.weatherChartView.alpha = 1
-            self.additionalInfoView.alpha = 1
+            let views = [self.weatherImageView, self.cityLabel, self.temperatureLabel, self.containerView, self.weatherChartView, self.additionalInfoView]
             
-            //Возвращение в исходное положение
-            self.weatherImageView.transform = .identity
-            self.cityLabel.transform = .identity
-            self.temperatureLabel.transform = .identity
-            self.containerView.transform = .identity
-            self.weatherChartView.transform = .identity
-            self.additionalInfoView.transform = .identity
+            views.forEach {
+                $0.alpha = 1
+                $0.transform = .identity
+            }
+            
             
         }, completion: nil)
                        
