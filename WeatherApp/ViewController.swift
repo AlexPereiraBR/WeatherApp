@@ -58,7 +58,7 @@ class ViewController: UIViewController {
             $0.alpha = 0
             $0.transform = CGAffineTransform(translationX: 0, y: 30)
         }
-        
+        //
 //        views.forEach { elementView in
 //            elementView.alpha = 0
 //            elementView.transform = CGAffineTransform(translationX: 0, y: 30)
