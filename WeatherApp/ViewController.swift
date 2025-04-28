@@ -10,8 +10,6 @@ import SnapKit
 
 class ViewController: UIViewController {
     
-    
-    
     // MARK: - UI Elements
     
     var weatherImageView = UIImageView()
@@ -23,21 +21,17 @@ class ViewController: UIViewController {
     
     // MARK: - Model
     
-    var model = WeatherModel(
-        temperature: "25",
-        city: "Москва",
-        weatherIconName: "Sunny")
+    var model = WeatherModel(temperature: "25", city: "Москва", weatherIconName: "Sunny")
     
     // MARK: - Lifecycle
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = .main
         
+        view.backgroundColor = .main
         
         setupInitialAppearance()
         
-
         configureWeatherImageView()
         configureCityLabel()
         configureTemperatureLabel()
@@ -45,33 +39,43 @@ class ViewController: UIViewController {
         configureWeatherChartView()
         configureAdditionalInfoView()
         
-        //Активируем появление
         animateAppearance()
-        }
+    }
     
     // MARK: - Setup Appearance
     
     func setupInitialAppearance() {
-        let views = [weatherImageView, cityLabel, temperatureLabel, containerView, weatherChartView, additionalInfoView]
+        let views = [
+            weatherImageView,
+            cityLabel,
+            temperatureLabel,
+            containerView,
+            weatherChartView,
+            additionalInfoView
+        ]
         
         views.forEach {
             $0.alpha = 0
             $0.transform = CGAffineTransform(translationX: 0, y: 30)
         }
+        //
+//        views.forEach { elementView in
+//            elementView.alpha = 0
+//            elementView.transform = CGAffineTransform(translationX: 0, y: 30)
+//        }
     }
     
     // MARK: - UI Configuration
     
-    //Настройка изображкения погоды (Пункт 1)
     func configureWeatherImageView() {
         weatherImageView.image = UIImage(named: model.weatherIconName)
         weatherImageView.contentMode = .scaleAspectFit
         view.addSubview(weatherImageView)
         
-        weatherImageView.snp.makeConstraints { make in
-            make.top.equalTo(view.safeAreaLayoutGuide).offset(40)
-            make.centerX.equalToSuperview()
-            make.width.height.equalTo(120)
+        weatherImageView.snp.makeConstraints {
+            $0.top.equalTo(view.safeAreaLayoutGuide).offset(40)
+            $0.centerX.equalToSuperview()
+            $0.width.height.equalTo(120)
         }
     }
     
@@ -105,11 +109,7 @@ class ViewController: UIViewController {
         containerView.backgroundColor = .main1
         containerView.layer.cornerRadius = 10
         
-        //Добавили тень
-        containerView.layer.shadowColor = UIColor.black.cgColor
-        containerView.layer.shadowOpacity = 0.5
-        containerView.layer.shadowOffset = CGSize(width: 0, height: 2)
-        containerView.layer.shadowRadius = 8
+        addShadowToView(containerView)
         
         view.addSubview(containerView)
         
@@ -124,11 +124,7 @@ class ViewController: UIViewController {
         weatherChartView.backgroundColor = .main1
         weatherChartView.layer.cornerRadius = 10
         
-        //Добавили тень
-        weatherChartView.layer.shadowColor = UIColor.black.cgColor
-        weatherChartView.layer.shadowOpacity = 0.5
-        weatherChartView.layer.shadowOffset = CGSize(width: 0, height: 2)
-        weatherChartView.layer.shadowRadius = 8
+        addShadowToView(weatherChartView)
         
         view.addSubview(weatherChartView)
         
@@ -138,16 +134,13 @@ class ViewController: UIViewController {
             make.height.equalTo(220)
         }
     }
+    
     // Настройка блока с дополнительной информацией (пункт 6)
     func configureAdditionalInfoView() {
         additionalInfoView.backgroundColor = .main1
         additionalInfoView.layer.cornerRadius = 10
         
-        //Добавили тень
-        additionalInfoView.layer.shadowColor = UIColor.black.cgColor
-        additionalInfoView.layer.shadowOpacity = 0.5
-        additionalInfoView.layer.shadowOffset = CGSize(width: 0, height: 2)
-        additionalInfoView.layer.shadowRadius = 8
+        addShadowToView(additionalInfoView)
         
         view.addSubview(additionalInfoView)
         
@@ -170,8 +163,13 @@ class ViewController: UIViewController {
             
         }, completion: nil)
                        
-        
-                    
+    }
+    
+    func addShadowToView(_ view: UIView) {
+        view.layer.shadowColor = UIColor.black.cgColor
+        view.layer.shadowOpacity = 0.5
+        view.layer.shadowOffset = CGSize(width: 0, height: 2)
+        view.layer.shadowRadius = 8
     }
 }
     
