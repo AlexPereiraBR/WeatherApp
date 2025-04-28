@@ -21,7 +21,7 @@ class ViewController: UIViewController {
     
     // MARK: - Model
     
-    var model = WeatherModel(temperature: "25", city: "Москва", weatherIconName: "Sunny")
+    var model = WeatherModel(temperature: "25", city: "Moscow", weatherIconName: "Sunny")
     
     // MARK: - Lifecycle
     
@@ -40,6 +40,8 @@ class ViewController: UIViewController {
         configureAdditionalInfoView()
         
         animateAppearance()
+        
+        fetchWeatherData() //Вызов функици загрузки данных о погоде
     }
     
     // MARK: - Setup Appearance
@@ -58,11 +60,7 @@ class ViewController: UIViewController {
             $0.alpha = 0
             $0.transform = CGAffineTransform(translationX: 0, y: 30)
         }
-        //
-//        views.forEach { elementView in
-//            elementView.alpha = 0
-//            elementView.transform = CGAffineTransform(translationX: 0, y: 30)
-//        }
+        
     }
     
     // MARK: - UI Configuration
@@ -119,7 +117,7 @@ class ViewController: UIViewController {
             make.height.equalTo(120)
         }
     }
-   // Настройка контейнера с дополнительной погодной инфолрмацией (Пункт 5)
+    // Настройка контейнера с дополнительной погодной инфолрмацией (Пункт 5)
     func configureWeatherChartView() {
         weatherChartView.backgroundColor = .main1
         weatherChartView.layer.cornerRadius = 10
@@ -162,7 +160,7 @@ class ViewController: UIViewController {
             
             
         }, completion: nil)
-                       
+        
     }
     
     func addShadowToView(_ view: UIView) {
@@ -171,5 +169,33 @@ class ViewController: UIViewController {
         view.layer.shadowOffset = CGSize(width: 0, height: 2)
         view.layer.shadowRadius = 8
     }
-}
     
+    // Функция загрузки данных о погоде
+    func fetchWeatherData() {
+        
+        let apiKey = "82b63b257fa6537513b6d200de7e71e4"
+        let city = model.city
+        
+        guard let url = URL(string: "https://api.openweathermap.org/data/2.5/weather?q=\(city)&appid=\(apiKey)&units=metric&lang=ru") else {
+            print ("Ошибка создание URL")
+            return
+        }
+        let task = URLSession.shared.dataTask(with: url) { data, response, error in
+            if let error = error {
+                print("Ошибка запроса: \(error.localizedDescription)")
+                return
+            }
+            guard let data = data else {
+                print("Нет данных от сервера")
+                return
+            }
+            if let jsonString = String(data: data, encoding: .utf8) {
+                print("Ответ сервера:")
+                print(jsonString)
+            }
+        }
+        
+        task.resume()
+    }
+    
+}
