@@ -6,3 +6,12 @@
 //
 
 import Foundation
+
+struct WeatherResponse: Codable {
+    let name: String
+    let main: MainWeatherInfo
+}
+
+struct MainWeatherInfo: Codable {
+    let temp: Double
+}

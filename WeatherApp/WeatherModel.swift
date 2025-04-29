@@ -8,7 +8,7 @@
 import Foundation
 
 struct WeatherModel {
-    var temperature: String
-    var city: String
-    var weatherIconName: String
+    var temperature: String?
+    var city: String?
+    var weatherIconName: String?
 }
