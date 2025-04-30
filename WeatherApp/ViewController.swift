@@ -7,6 +7,7 @@
 
 import UIKit
 import SnapKit
+import Alamofire
 
 class ViewController: UIViewController {
     
@@ -21,7 +22,7 @@ class ViewController: UIViewController {
     
     // MARK: - Model
     
-    var model = WeatherModel(temperature: "25", city: "Москва", weatherIconName: "Sunny")
+    var model = WeatherModel(temperature: nil, city: nil, weatherIconName: "Sunny")
     
     // MARK: - Lifecycle
     
@@ -40,6 +41,8 @@ class ViewController: UIViewController {
         configureAdditionalInfoView()
         
         animateAppearance()
+        
+        fetchWeatherWithAlamofire()
     }
     
     // MARK: - Setup Appearance
@@ -58,17 +61,13 @@ class ViewController: UIViewController {
             $0.alpha = 0
             $0.transform = CGAffineTransform(translationX: 0, y: 30)
         }
-        //
-//        views.forEach { elementView in
-//            elementView.alpha = 0
-//            elementView.transform = CGAffineTransform(translationX: 0, y: 30)
-//        }
+        
     }
     
     // MARK: - UI Configuration
     
     func configureWeatherImageView() {
-        weatherImageView.image = UIImage(named: model.weatherIconName)
+        weatherImageView.image = UIImage(named: model.weatherIconName ?? "Sunny")
         weatherImageView.contentMode = .scaleAspectFit
         view.addSubview(weatherImageView)
         
@@ -94,7 +93,7 @@ class ViewController: UIViewController {
     
     //Настройка отображения температуры (Пункт 3)
     func configureTemperatureLabel() {
-        temperatureLabel.text = "\(model.temperature)°C"
+        temperatureLabel.text = "\(model.temperature ?? "Loading...")°C"
         temperatureLabel.textAlignment = .center
         temperatureLabel.font = UIFont.boldSystemFont(ofSize: 48)
         view.addSubview(temperatureLabel)
@@ -119,7 +118,7 @@ class ViewController: UIViewController {
             make.height.equalTo(120)
         }
     }
-   // Настройка контейнера с дополнительной погодной инфолрмацией (Пункт 5)
+    // Настройка контейнера с дополнительной погодной инфолрмацией (Пункт 5)
     func configureWeatherChartView() {
         weatherChartView.backgroundColor = .main1
         weatherChartView.layer.cornerRadius = 10
@@ -162,7 +161,7 @@ class ViewController: UIViewController {
             
             
         }, completion: nil)
-                       
+        
     }
     
     func addShadowToView(_ view: UIView) {
@@ -171,5 +170,73 @@ class ViewController: UIViewController {
         view.layer.shadowOffset = CGSize(width: 0, height: 2)
         view.layer.shadowRadius = 8
     }
-}
     
+    // Функция загрузки данных о погоде
+    func fetchWeatherData() {
+        
+        let apiKey = "82b63b257fa6537513b6d200de7e71e4"
+        let city = model.city ?? "Moscow"
+        
+        guard let url = URL(string: "https://api.openweathermap.org/data/2.5/weather?q=\(city)&appid=\(apiKey)&units=metric&lang=ru") else {
+            print ("Ошибка создание URL")
+            return
+        }
+        let task = URLSession.shared.dataTask(with: url) { data, response, error in
+            if let error = error {
+                print("Ошибка запроса: \(error.localizedDescription)")
+                return
+            }
+            guard let data = data else {
+                print("Нет данных от сервера")
+                return
+            }
+            if let jsonString = String(data: data, encoding: .utf8) {
+                print("Ответ сервера:")
+                print(jsonString)
+            }
+        }
+        
+        task.resume()
+    }
+    
+    func fetchWeatherWithAlamofire() {
+        let apiKey = "82b63b257fa6537513b6d200de7e71e4"
+        let city = model.city ?? "Moscow"
+        
+        let url = "https://api.openweathermap.org/data/2.5/weather?q=\(city)&appid=\(apiKey)&units=metric&lang=ru"
+        
+        AF.request(url).responseDecodable(of: WeatherResponse.self) { response in
+            switch response.result {
+            case .success(let weatherData):
+                print("✅ Город: \(weatherData.name)")
+                print("🌡 Температура: \(weatherData.main.temp)°C")
+                
+                self.model.city = weatherData.name
+                self.model.temperature = String(Int(weatherData.main.temp))
+                
+                self.updateUI()
+            case .failure(let error):
+                print("❌ Ошибка Alamofire: \(error.localizedDescription)")
+            }
+            
+        }
+    }
+    //При запуске на симуляторе на экран сразу показывает данные из модели а потом через секунду или две после ответа от сервера данные меняются на актуальные и глаз успевает заметить это "Дергание". Здесь я попытался это убрать,возможно не совем изящно. Но по сути сейчас как минимум 3 элемента должны выводится только после обновленя данных - значек погоды,город и температура.
+    func updateUI() {
+        if let city = model.city {
+            cityLabel.text = city
+        } else {
+            cityLabel.text = "Loading..."
+        }
+        
+        if let temperature = model.temperature {
+            temperatureLabel.text = "\(temperature)°C"
+        } else { temperatureLabel.text = "Loading...°C"
+            
+        }
+        
+//        cityLabel.text = model.city
+//        temperatureLabel.text = "\(model.temperature)°C"
+    }
+    
+}
