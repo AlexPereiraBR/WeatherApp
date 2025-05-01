@@ -67,7 +67,7 @@ class ViewController: UIViewController {
     // MARK: - UI Configuration
     
     func configureWeatherImageView() {
-        weatherImageView.image = UIImage(named: model.weatherIconName ?? "Sunny")
+        
         weatherImageView.contentMode = .scaleAspectFit
         view.addSubview(weatherImageView)
         
@@ -78,9 +78,8 @@ class ViewController: UIViewController {
         }
     }
     
-    //Настройка названия города (Пункт 2)
     func configureCityLabel() {
-        cityLabel.text = model.city
+        cityLabel.text = model.city ?? "Loading..."
         cityLabel.textAlignment = .center
         cityLabel.font = UIFont.systemFont(ofSize: 24, weight: .semibold)
         view.addSubview(cityLabel)
@@ -91,7 +90,6 @@ class ViewController: UIViewController {
         }
     }
     
-    //Настройка отображения температуры (Пункт 3)
     func configureTemperatureLabel() {
         temperatureLabel.text = "\(model.temperature ?? "Loading...")°C"
         temperatureLabel.textAlignment = .center
@@ -103,7 +101,7 @@ class ViewController: UIViewController {
             make.centerX.equalToSuperview()
         }
     }
-    //Настройка контейнера с дополнительной погодной информацией (пункт 4)
+ 
     func configureContainerView() {
         containerView.backgroundColor = .main1
         containerView.layer.cornerRadius = 10
@@ -118,7 +116,7 @@ class ViewController: UIViewController {
             make.height.equalTo(120)
         }
     }
-    // Настройка контейнера с дополнительной погодной инфолрмацией (Пункт 5)
+ 
     func configureWeatherChartView() {
         weatherChartView.backgroundColor = .main1
         weatherChartView.layer.cornerRadius = 10
@@ -134,7 +132,6 @@ class ViewController: UIViewController {
         }
     }
     
-    // Настройка блока с дополнительной информацией (пункт 6)
     func configureAdditionalInfoView() {
         additionalInfoView.backgroundColor = .main1
         additionalInfoView.layer.cornerRadius = 10
@@ -171,7 +168,6 @@ class ViewController: UIViewController {
         view.layer.shadowRadius = 8
     }
     
-    // Функция загрузки данных о погоде
     func fetchWeatherData() {
         
         let apiKey = "82b63b257fa6537513b6d200de7e71e4"
@@ -202,7 +198,6 @@ class ViewController: UIViewController {
     func fetchWeatherWithAlamofire() {
         let apiKey = "82b63b257fa6537513b6d200de7e71e4"
         let city = model.city ?? "Moscow"
-        
         let url = "https://api.openweathermap.org/data/2.5/weather?q=\(city)&appid=\(apiKey)&units=metric&lang=ru"
         
         AF.request(url).responseDecodable(of: WeatherResponse.self) { response in
@@ -214,6 +209,9 @@ class ViewController: UIViewController {
                 self.model.city = weatherData.name
                 self.model.temperature = String(Int(weatherData.main.temp))
                 
+                let iconCode = weatherData.weather.first?.icon ?? "01d"
+                self.loadWeatherIcon(named: iconCode)
+                
                 self.updateUI()
             case .failure(let error):
                 print("❌ Ошибка Alamofire: \(error.localizedDescription)")
@@ -221,22 +219,39 @@ class ViewController: UIViewController {
             
         }
     }
-    //При запуске на симуляторе на экран сразу показывает данные из модели а потом через секунду или две после ответа от сервера данные меняются на актуальные и глаз успевает заметить это "Дергание". Здесь я попытался это убрать,возможно не совем изящно. Но по сути сейчас как минимум 3 элемента должны выводится только после обновленя данных - значек погоды,город и температура.
-    func updateUI() {
-        if let city = model.city {
-            cityLabel.text = city
-        } else {
-            cityLabel.text = "Loading..."
+    
+    func loadWeatherIcon(named iconCode: String) {
+        let iconURL = "https://openweathermap.org/img/wn/\(iconCode)@2x.png"
+        
+        AF.request(iconURL).responseData { response in
+            switch response.result {
+            case .success(let data):
+                if let image = UIImage(data: data) {
+                    DispatchQueue.main.async {
+                        self.weatherImageView.image = image
+                    }
+                }
+            case .failure(let error):
+                print("❌ Ошибка загрузки иконки: \(error.localizedDescription)")
+            }
         }
         
-        if let temperature = model.temperature {
-            temperatureLabel.text = "\(temperature)°C"
-        } else { temperatureLabel.text = "Loading...°C"
+    }
+    
+        func updateUI() {
+            if let city = model.city {
+                cityLabel.text = city
+            } else {
+                cityLabel.text = "Loading..."
+            }
+            
+            if let temperature = model.temperature {
+                temperatureLabel.text = "\(temperature)°C"
+            } else { temperatureLabel.text = "Loading...°C"
+                
+            }
             
         }
         
-//        cityLabel.text = model.city
-//        temperatureLabel.text = "\(model.temperature)°C"
     }
-    
-}
+
