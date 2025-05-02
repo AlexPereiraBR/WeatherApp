@@ -9,6 +9,8 @@ import UIKit
 import SnapKit
 import Alamofire
 import CoreLocation
+import Network
+import Reachability
 
 class ViewController: UIViewController {
     
@@ -29,6 +31,8 @@ class ViewController: UIViewController {
     // MARK: - Model
     
     var model = WeatherModel()
+    var reachability: Reachability?
+    let userDefaults = UserDefaults.standard
     
     // MARK: - Lifecycle
     
@@ -62,6 +66,26 @@ class ViewController: UIViewController {
         locationManager.delegate = self
         locationManager.requestWhenInUseAuthorization()
         locationManager.requestLocation()
+        
+        // Reachability: handle denied location + offline + saved city
+        do {
+            reachability = try Reachability()
+            reachability?.whenUnreachable = { _ in
+                if CLLocationManager.authorizationStatus() == .denied,
+                   let savedCity = self.userDefaults.string(forKey: "savedCity") {
+                    DispatchQueue.main.async {
+                        self.model.city = savedCity
+                        self.fetchWeatherWithAlamofire()
+                    }
+                }
+            }
+            try reachability?.startNotifier()
+        } catch {
+            print("❌ Ошибка запуска Reachability: \(error)")
+            }
+        
+        navigationItem.rightBarButtonItem = UIBarButtonItem(title: "City", style: .plain, target: self, action: #selector(promptForCity))
+        
     }
     
     // MARK: - Setup Appearance
@@ -260,6 +284,15 @@ class ViewController: UIViewController {
                 
                 self.updateUI()
             case .failure:
+                //Check for 404/city not found
+                if let data = response.data,
+                   let json = try? JSONSerialization.jsonObject(with: data) as?
+                    [String: Any],
+                   let message = json["message"] as? String,
+                   message.lowercased().contains("city not found") {
+                    self.showErrorAlert(message: "Город не найден. Проверьте название города")
+                    return
+                }
                 self.activityIndicator.stopAnimating()
                 self.refreshControl.endRefreshing()
                 self.showErrorAlert(message: "Не удалось загрузить данные о погоде. Проверьте подключение к интернету и попробуйте снова")
@@ -308,10 +341,14 @@ class ViewController: UIViewController {
                         self.weatherImageView.image = image
                     }
                 }
-            case .failure(let error):
-                print("❌ Ошибка загрузки иконки: \(error.localizedDescription)")
+            case .failure:
+                // Set local fallback weather icon
+                DispatchQueue.main.async {
+                    self.weatherImageView.image = UIImage(systemName: "cloud.slash")
+                }
             }
         }
+        
     }
     //MARK: - Update UI
     
@@ -343,6 +380,22 @@ class ViewController: UIViewController {
         fetchWeatherWithAlamofire()
     }
     
+    @objc func promptForCity() {
+        let alert = UIAlertController(title: "Введите город", message: nil, preferredStyle: .alert)
+        alert.addTextField()
+        
+        let submitAction = UIAlertAction(title: "OK", style: .default)
+        { [weak self, weak alert] _ in
+            guard let city = alert?.textFields?.first?.text, !city.isEmpty else { return }
+            self?.userDefaults.set(city, forKey: "savedCity")
+            self?.model.city = city
+            self?.fetchWeatherWithAlamofire()
+            
+        }
+        alert.addAction(submitAction)
+        self.present(alert, animated: true)
+    }
+    
 }
 
 //MARK: - Location
@@ -359,3 +412,6 @@ extension ViewController: CLLocationManagerDelegate {
         print("Ошибка геолокации: \(error.localizedDescription)")
     }
 }
+
+
+
