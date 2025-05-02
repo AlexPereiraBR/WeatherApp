@@ -8,6 +8,7 @@
 import UIKit
 import SnapKit
 import Alamofire
+import CoreLocation
 
 class ViewController: UIViewController {
     
@@ -23,9 +24,11 @@ class ViewController: UIViewController {
     let weatherChartView = UIView()
     let additionalInfoView = UIView()
     
+    let locationManager = CLLocationManager()
+    
     // MARK: - Model
     
-    var model = WeatherModel(temperature: nil, city: nil, weatherIconName: "Sunny", humidity: nil, pressure: nil, windSpeed: nil)
+    var model = WeatherModel()
     
     // MARK: - Lifecycle
     
@@ -39,7 +42,7 @@ class ViewController: UIViewController {
         refreshControl.addTarget(self, action: #selector(refreshWeatherData), for: .valueChanged)
         
         view.addSubview(scrollView)
-        scrollView.snp.makeConstraints {make in 
+        scrollView.snp.makeConstraints {make in
             make.edges.equalToSuperview()
         }
         
@@ -56,7 +59,9 @@ class ViewController: UIViewController {
         
         animateAppearance()
         
-        fetchWeatherWithAlamofire()
+        locationManager.delegate = self
+        locationManager.requestWhenInUseAuthorization()
+        locationManager.requestLocation()
     }
     
     // MARK: - Setup Appearance
@@ -89,7 +94,7 @@ class ViewController: UIViewController {
     func configureWeatherImageView() {
         
         weatherImageView.contentMode = .scaleAspectFit
-//        view.addSubview(weatherImageView)
+        
         scrollView.addSubview(weatherImageView)
         
         weatherImageView.snp.makeConstraints {
@@ -103,7 +108,7 @@ class ViewController: UIViewController {
         cityLabel.text = model.city ?? "Loading..."
         cityLabel.textAlignment = .center
         cityLabel.font = UIFont.systemFont(ofSize: 24, weight: .semibold)
-
+        
         scrollView.addSubview(cityLabel)
         
         cityLabel.snp.makeConstraints { make in
@@ -116,7 +121,7 @@ class ViewController: UIViewController {
         temperatureLabel.text = "\(model.temperature ?? "Loading...")°C"
         temperatureLabel.textAlignment = .center
         temperatureLabel.font = UIFont.boldSystemFont(ofSize: 48)
-
+        
         scrollView.addSubview(temperatureLabel)
         
         temperatureLabel.snp.makeConstraints { make in
@@ -124,7 +129,7 @@ class ViewController: UIViewController {
             make.centerX.equalToSuperview()
         }
     }
- 
+    
     func configureContainerView() {
         containerView.backgroundColor = .main1
         containerView.layer.cornerRadius = 10
@@ -139,7 +144,7 @@ class ViewController: UIViewController {
             make.height.equalTo(120)
         }
     }
- 
+    
     func configureWeatherChartView() {
         weatherChartView.backgroundColor = .main1
         weatherChartView.layer.cornerRadius = 10
@@ -172,7 +177,7 @@ class ViewController: UIViewController {
     }
     func updateAdditionalInfoViewContent() {
         additionalInfoView.subviews.forEach { $0.removeFromSuperview() }
-    
+        
         let humidityLabel = UILabel()
         humidityLabel.text = "Влажность: \(model.humidity ?? "__")"
         humidityLabel.font = UIFont.systemFont(ofSize:16)
@@ -204,13 +209,6 @@ class ViewController: UIViewController {
             make.left.right.equalToSuperview().inset(12)
         }
         
-        view.addSubview(additionalInfoView)
-        
-        additionalInfoView.snp.makeConstraints { make in
-            make.top.equalTo(weatherChartView.snp.bottom).offset(24)
-            make.left.right.equalToSuperview().inset(24)
-            make.height.equalTo(140)
-        }
     }
     
     func animateAppearance() {
@@ -221,7 +219,6 @@ class ViewController: UIViewController {
                 $0.alpha = 1
                 $0.transform = .identity
             }
-            
             
         }, completion: nil)
         
@@ -234,37 +231,14 @@ class ViewController: UIViewController {
         view.layer.shadowRadius = 8
     }
     
-    func fetchWeatherData() {
-        
-        let apiKey = "82b63b257fa6537513b6d200de7e71e4"
-        let city = model.city ?? "Moscow"
-        
-        guard let url = URL(string: "https://api.openweathermap.org/data/2.5/weather?q=\(city)&appid=\(apiKey)&units=metric&lang=ru") else {
-            print ("Ошибка создание URL")
-            return
-        }
-        let task = URLSession.shared.dataTask(with: url) { data, response, error in
-            if let error = error {
-                print("Ошибка запроса: \(error.localizedDescription)")
-                return
-            }
-            guard let data = data else {
-                print("Нет данных от сервера")
-                return
-            }
-            if let jsonString = String(data: data, encoding: .utf8) {
-                print("Ответ сервера:")
-                print(jsonString)
-            }
-        }
-        
-        task.resume()
-    }
+    //MARK: - Networking
     
     func fetchWeatherWithAlamofire() {
         activityIndicator.startAnimating()
         let apiKey = "82b63b257fa6537513b6d200de7e71e4"
-        let city = model.city ?? "Moscow"
+        guard let city = model.city else {
+            return
+        }
         let url = "https://api.openweathermap.org/data/2.5/weather?q=\(city)&appid=\(apiKey)&units=metric&lang=ru"
         
         AF.request(url).responseDecodable(of: WeatherResponse.self) { response in
@@ -273,14 +247,13 @@ class ViewController: UIViewController {
                 self.activityIndicator.stopAnimating()
                 self.refreshControl.endRefreshing()
                 print("✅ Город: \(weatherData.name)")
-                print("🌡 Температура: \(weatherData.main.temp)°C")
                 
                 self.model.city = weatherData.name
                 self.model.temperature = String(Int(weatherData.main.temp))
                 
                 self.model.humidity = "\(weatherData.main.humidity)%"
                 self.model.pressure = "\(weatherData.main.pressure) hPa"
-                self.model.windSpeed = "\(weatherData.wind.speed) м/с"
+                self.model.windSpeed = "\(weatherData.wind.speed) m/s"
                 
                 let iconCode = weatherData.weather.first?.icon ?? "01d"
                 self.loadWeatherIcon(named: iconCode)
@@ -292,6 +265,35 @@ class ViewController: UIViewController {
                 self.showErrorAlert(message: "Не удалось загрузить данные о погоде. Проверьте подключение к интернету и попробуйте снова")
             }
             
+        }
+    }
+    
+    func fetchWeatherByCoordinates(lat: Double, lon: Double) {
+        activityIndicator.startAnimating()
+        let apiKey = "82b63b257fa6537513b6d200de7e71e4"
+        let url = "https://api.openweathermap.org/data/2.5/weather?lat=\(lat)&lon=\(lon)&appid=\(apiKey)&units=metric&lang=ru"
+        
+        AF.request(url).responseDecodable(of: WeatherResponse.self) { response in
+            switch response.result {
+            case .success(let weatherData):
+                self.activityIndicator.stopAnimating()
+                self.refreshControl.endRefreshing()
+                
+                self.model.city = weatherData.name
+                self.model.temperature = String(Int(weatherData.main.temp))
+                self.model.humidity = "\(weatherData.main.humidity)%"
+                self.model.pressure = "\(weatherData.main.pressure) hPa"
+                self.model.windSpeed = "\(weatherData.wind.speed) m/s"
+                
+                let iconCode = weatherData.weather.first?.icon ?? "01d"
+                self.loadWeatherIcon(named: iconCode)
+                
+                self.updateUI()
+            case .failure:
+                self.activityIndicator.stopAnimating()
+                self.refreshControl.endRefreshing()
+                self.showErrorAlert(message: "Не удалось получить погоду по координатам. Проверьте разрешения в настройках")
+            }
         }
     }
     
@@ -310,25 +312,24 @@ class ViewController: UIViewController {
                 print("❌ Ошибка загрузки иконки: \(error.localizedDescription)")
             }
         }
+    }
+    //MARK: - Update UI
+    
+    func updateUI() {
+        
+        updateAdditionalInfoViewContent()
+        if let city = model.city {
+            cityLabel.text = city
+        } else {
+            cityLabel.text = "Loading..."
+        }
+        
+        if let temperature = model.temperature {
+            temperatureLabel.text = "\(temperature)°C"
+  
+        }
         
     }
-    
-        func updateUI() {
-            
-            updateAdditionalInfoViewContent()
-            if let city = model.city {
-                cityLabel.text = city
-            } else {
-                cityLabel.text = "Loading..."
-            }
-            
-            if let temperature = model.temperature {
-                temperatureLabel.text = "\(temperature)°C"
-            } else { temperatureLabel.text = "Loading...°C"
-                
-            }
-            
-        }
     
     func showErrorAlert(message: String) {
         let alert = UIAlertController(title: "Ошибка", message: message, preferredStyle: .alert)
@@ -344,3 +345,17 @@ class ViewController: UIViewController {
     
 }
 
+//MARK: - Location
+extension ViewController: CLLocationManagerDelegate {
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        if let location = locations.first {
+            let lat = location.coordinate.latitude
+            let lon = location.coordinate.longitude
+            fetchWeatherByCoordinates(lat: lat, lon: lon)
+        }
+    }
+    
+    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        print("Ошибка геолокации: \(error.localizedDescription)")
+    }
+}
