@@ -34,6 +34,15 @@ class ViewController: UIViewController {
     var reachability: Reachability?
     let userDefaults = UserDefaults.standard
     
+    var viewedCities: [String] {
+        get {
+            userDefaults.stringArray(forKey: "viewedCities") ?? []
+        }
+        set {
+            userDefaults.set(newValue, forKey: "viewedCities")
+        }
+    }
+    
     // MARK: - Lifecycle
     
     override func viewDidLoad() {
@@ -85,7 +94,7 @@ class ViewController: UIViewController {
             }
         
         navigationItem.rightBarButtonItem = UIBarButtonItem(title: "City", style: .plain, target: self, action: #selector(promptForCity))
-        
+        navigationItem.leftBarButtonItem = UIBarButtonItem(title: "History", style: .plain, target: self, action: #selector(showHistory))
     }
     
     // MARK: - Setup Appearance
@@ -266,36 +275,45 @@ class ViewController: UIViewController {
         let url = "https://api.openweathermap.org/data/2.5/weather?q=\(city)&appid=\(apiKey)&units=metric&lang=ru"
         
         AF.request(url).responseDecodable(of: WeatherResponse.self) { response in
-            switch response.result {
-            case .success(let weatherData):
-                self.activityIndicator.stopAnimating()
-                self.refreshControl.endRefreshing()
-                print("✅ Город: \(weatherData.name)")
-                
-                self.model.city = weatherData.name
-                self.model.temperature = String(Int(weatherData.main.temp))
-                
-                self.model.humidity = "\(weatherData.main.humidity)%"
-                self.model.pressure = "\(weatherData.main.pressure) hPa"
-                self.model.windSpeed = "\(weatherData.wind.speed) m/s"
-                
-                let iconCode = weatherData.weather.first?.icon ?? "01d"
-                self.loadWeatherIcon(named: iconCode)
-                
-                self.updateUI()
-            case .failure:
-                //Check for 404/city not found
-                if let data = response.data,
-                   let json = try? JSONSerialization.jsonObject(with: data) as?
-                    [String: Any],
-                   let message = json["message"] as? String,
-                   message.lowercased().contains("city not found") {
-                    self.showErrorAlert(message: "Город не найден. Проверьте название города")
-                    return
+            DispatchQueue.main.async {
+                switch response.result {
+                case .success(let weatherData):
+                    self.activityIndicator.stopAnimating()
+                    self.refreshControl.endRefreshing()
+                    print("✅ Город: \(weatherData.name)")
+                    
+                    self.model.city = weatherData.name
+                    self.model.temperature = String(Int(weatherData.main.temp))
+                    
+                    self.model.humidity = "\(weatherData.main.humidity)%"
+                    self.model.pressure = "\(weatherData.main.pressure) hPa"
+                    self.model.windSpeed = "\(weatherData.wind.speed) m/s"
+                    
+                    let iconCode = weatherData.weather.first?.icon ?? "01d"
+                    self.loadWeatherIcon(named: iconCode)
+                    
+                    if !self.viewedCities.contains(weatherData.name) {
+                        var updated = self.viewedCities
+                        updated.append(weatherData.name)
+                        self.viewedCities = updated
+                        
+                    }
+                    
+                    self.updateUI()
+                case .failure:
+                    //Check for 404/city not found
+                    if let data = response.data,
+                       let json = try? JSONSerialization.jsonObject(with: data) as?
+                        [String: Any],
+                       let message = json["message"] as? String,
+                       message.lowercased().contains("city not found") {
+                        self.showErrorAlert(message: "Город не найден. Проверьте название города")
+                        return
+                    }
+                    self.activityIndicator.stopAnimating()
+                    self.refreshControl.endRefreshing()
+                    self.showErrorAlert(message: "Не удалось загрузить данные о погоде. Проверьте подключение к интернету и попробуйте снова")
                 }
-                self.activityIndicator.stopAnimating()
-                self.refreshControl.endRefreshing()
-                self.showErrorAlert(message: "Не удалось загрузить данные о погоде. Проверьте подключение к интернету и попробуйте снова")
             }
             
         }
@@ -396,6 +414,16 @@ class ViewController: UIViewController {
         self.present(alert, animated: true)
     }
     
+    // MARK: - History
+    @objc func showHistory() {
+        let historyVC = HistoryViewController()
+        historyVC.viewedCities = self.viewedCities
+        historyVC.citySelectionHandler = { [weak self] selectedCity in
+            self?.model.city = selectedCity
+            self?.fetchWeatherWithAlamofire()
+        }
+        navigationController?.pushViewController(historyVC, animated: true)
+    }
 }
 
 //MARK: - Location
@@ -412,6 +440,8 @@ extension ViewController: CLLocationManagerDelegate {
         print("Ошибка геолокации: \(error.localizedDescription)")
     }
 }
+
+
 
 
 
