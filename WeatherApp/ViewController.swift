@@ -77,9 +77,11 @@ class ViewController: UIViewController {
         locationManager.requestLocation()
         
         // Reachability: handle denied location + offline + saved city
+        // Это можнт быть в отдельную функцию надо вынести?
         do {
             reachability = try Reachability()
             reachability?.whenUnreachable = { _ in
+                // Тут варнинг о том что метод устарел, в идеале желтых ошибок быть не должно никаких
                 if CLLocationManager.authorizationStatus() == .denied,
                    let savedCity = self.userDefaults.string(forKey: "savedCity") {
                     DispatchQueue.main.async {
@@ -91,6 +93,7 @@ class ViewController: UIViewController {
             try reachability?.startNotifier()
         } catch {
             print("❌ Ошибка запуска Reachability: \(error)")
+            // Отступ скобки
             }
         
         navigationItem.rightBarButtonItem = UIBarButtonItem(title: "City", style: .plain, target: self, action: #selector(promptForCity))
@@ -125,7 +128,7 @@ class ViewController: UIViewController {
     }
     
     func configureWeatherImageView() {
-        
+        // перед всем кодом внутри функции пустых отступов быть не должно
         weatherImageView.contentMode = .scaleAspectFit
         
         scrollView.addSubview(weatherImageView)
@@ -210,7 +213,7 @@ class ViewController: UIViewController {
     }
     func updateAdditionalInfoViewContent() {
         additionalInfoView.subviews.forEach { $0.removeFromSuperview() }
-        
+        // Сделай отдельный класс для этого втю и размести в отдельном файле. А тут сделай вызов ит задавай данные
         let humidityLabel = UILabel()
         humidityLabel.text = "Влажность: \(model.humidity ?? "__")"
         humidityLabel.font = UIFont.systemFont(ofSize:16)
@@ -268,10 +271,12 @@ class ViewController: UIViewController {
     
     func fetchWeatherWithAlamofire() {
         activityIndicator.startAnimating()
+        // Создай отдельную структуру в отдельном файле с названием Constants и вынеси ключевые константы туда, апи кей должен лежать 100% отдельно. Оброазайся к константам через static заодно изучи почему именно через него и что это такое
         let apiKey = "82b63b257fa6537513b6d200de7e71e4"
         guard let city = model.city else {
             return
         }
+        // Адреса тоже заносят в константы, особенно первую неизменяемую часть адреса, подумай что здесь нужно вынести в константы
         let url = "https://api.openweathermap.org/data/2.5/weather?q=\(city)&appid=\(apiKey)&units=metric&lang=ru"
         
         AF.request(url).responseDecodable(of: WeatherResponse.self) { response in
@@ -300,6 +305,7 @@ class ViewController: UIViewController {
                     }
                     
                     self.updateUI()
+                // у фейлур есть ошибка с текстом, ть можешь ее показывать в своей функции на эррор алерт (failure(let error))
                 case .failure:
                     //Check for 404/city not found
                     if let data = response.data,
@@ -371,7 +377,7 @@ class ViewController: UIViewController {
     //MARK: - Update UI
     
     func updateUI() {
-        
+        // отступы
         updateAdditionalInfoViewContent()
         if let city = model.city {
             cityLabel.text = city
@@ -387,6 +393,7 @@ class ViewController: UIViewController {
     }
     
     func showErrorAlert(message: String) {
+        // здесь тоже можно вынести в константы
         let alert = UIAlertController(title: "Ошибка", message: message, preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "OK", style: .default))
         DispatchQueue.main.async {

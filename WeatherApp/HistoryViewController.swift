@@ -21,6 +21,8 @@ class HistoryViewController: UIViewController, UITableViewDelegate, UITableViewD
         title = "History"
         view.backgroundColor = .main
         view.isOpaque = false
+        
+        // Вроде для таблицы отдельная функция напрашивается?
         tableView.isOpaque = false
         
         view.addSubview(tableView)
@@ -59,6 +61,7 @@ class HistoryViewController: UIViewController, UITableViewDelegate, UITableViewD
         return cell
     }
     
+    // didSelect делетаный метод и должен быть отделен маркой // MARK: - UITableViewDelegate аналогично и для методов выше (там датасурс)
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         let selectedCity = viewedCities[indexPath.row]
         citySelectionHandler?(selectedCity)
