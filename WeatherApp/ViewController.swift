@@ -9,6 +9,8 @@ import UIKit
 import SnapKit
 import Alamofire
 import CoreLocation
+import Network
+import Reachability
 
 class ViewController: UIViewController {
     
@@ -29,6 +31,17 @@ class ViewController: UIViewController {
     // MARK: - Model
     
     var model = WeatherModel()
+    var reachability: Reachability?
+    let userDefaults = UserDefaults.standard
+    
+    var viewedCities: [String] {
+        get {
+            userDefaults.stringArray(forKey: "viewedCities") ?? []
+        }
+        set {
+            userDefaults.set(newValue, forKey: "viewedCities")
+        }
+    }
     
     // MARK: - Lifecycle
     
@@ -62,6 +75,26 @@ class ViewController: UIViewController {
         locationManager.delegate = self
         locationManager.requestWhenInUseAuthorization()
         locationManager.requestLocation()
+        
+        // Reachability: handle denied location + offline + saved city
+        do {
+            reachability = try Reachability()
+            reachability?.whenUnreachable = { _ in
+                if CLLocationManager.authorizationStatus() == .denied,
+                   let savedCity = self.userDefaults.string(forKey: "savedCity") {
+                    DispatchQueue.main.async {
+                        self.model.city = savedCity
+                        self.fetchWeatherWithAlamofire()
+                    }
+                }
+            }
+            try reachability?.startNotifier()
+        } catch {
+            print("❌ Ошибка запуска Reachability: \(error)")
+            }
+        
+        navigationItem.rightBarButtonItem = UIBarButtonItem(title: "City", style: .plain, target: self, action: #selector(promptForCity))
+        navigationItem.leftBarButtonItem = UIBarButtonItem(title: "History", style: .plain, target: self, action: #selector(showHistory))
     }
     
     // MARK: - Setup Appearance
@@ -242,27 +275,45 @@ class ViewController: UIViewController {
         let url = "https://api.openweathermap.org/data/2.5/weather?q=\(city)&appid=\(apiKey)&units=metric&lang=ru"
         
         AF.request(url).responseDecodable(of: WeatherResponse.self) { response in
-            switch response.result {
-            case .success(let weatherData):
-                self.activityIndicator.stopAnimating()
-                self.refreshControl.endRefreshing()
-                print("✅ Город: \(weatherData.name)")
-                
-                self.model.city = weatherData.name
-                self.model.temperature = String(Int(weatherData.main.temp))
-                
-                self.model.humidity = "\(weatherData.main.humidity)%"
-                self.model.pressure = "\(weatherData.main.pressure) hPa"
-                self.model.windSpeed = "\(weatherData.wind.speed) m/s"
-                
-                let iconCode = weatherData.weather.first?.icon ?? "01d"
-                self.loadWeatherIcon(named: iconCode)
-                
-                self.updateUI()
-            case .failure:
-                self.activityIndicator.stopAnimating()
-                self.refreshControl.endRefreshing()
-                self.showErrorAlert(message: "Не удалось загрузить данные о погоде. Проверьте подключение к интернету и попробуйте снова")
+            DispatchQueue.main.async {
+                switch response.result {
+                case .success(let weatherData):
+                    self.activityIndicator.stopAnimating()
+                    self.refreshControl.endRefreshing()
+                    print("✅ Город: \(weatherData.name)")
+                    
+                    self.model.city = weatherData.name
+                    self.model.temperature = String(Int(weatherData.main.temp))
+                    
+                    self.model.humidity = "\(weatherData.main.humidity)%"
+                    self.model.pressure = "\(weatherData.main.pressure) hPa"
+                    self.model.windSpeed = "\(weatherData.wind.speed) m/s"
+                    
+                    let iconCode = weatherData.weather.first?.icon ?? "01d"
+                    self.loadWeatherIcon(named: iconCode)
+                    
+                    if !self.viewedCities.contains(weatherData.name) {
+                        var updated = self.viewedCities
+                        updated.append(weatherData.name)
+                        self.viewedCities = updated
+                        
+                    }
+                    
+                    self.updateUI()
+                case .failure:
+                    //Check for 404/city not found
+                    if let data = response.data,
+                       let json = try? JSONSerialization.jsonObject(with: data) as?
+                        [String: Any],
+                       let message = json["message"] as? String,
+                       message.lowercased().contains("city not found") {
+                        self.showErrorAlert(message: "Город не найден. Проверьте название города")
+                        return
+                    }
+                    self.activityIndicator.stopAnimating()
+                    self.refreshControl.endRefreshing()
+                    self.showErrorAlert(message: "Не удалось загрузить данные о погоде. Проверьте подключение к интернету и попробуйте снова")
+                }
             }
             
         }
@@ -308,10 +359,14 @@ class ViewController: UIViewController {
                         self.weatherImageView.image = image
                     }
                 }
-            case .failure(let error):
-                print("❌ Ошибка загрузки иконки: \(error.localizedDescription)")
+            case .failure:
+                // Set local fallback weather icon
+                DispatchQueue.main.async {
+                    self.weatherImageView.image = UIImage(systemName: "cloud.slash")
+                }
             }
         }
+        
     }
     //MARK: - Update UI
     
@@ -343,6 +398,32 @@ class ViewController: UIViewController {
         fetchWeatherWithAlamofire()
     }
     
+    @objc func promptForCity() {
+        let alert = UIAlertController(title: "Введите город", message: nil, preferredStyle: .alert)
+        alert.addTextField()
+        
+        let submitAction = UIAlertAction(title: "OK", style: .default)
+        { [weak self, weak alert] _ in
+            guard let city = alert?.textFields?.first?.text, !city.isEmpty else { return }
+            self?.userDefaults.set(city, forKey: "savedCity")
+            self?.model.city = city
+            self?.fetchWeatherWithAlamofire()
+            
+        }
+        alert.addAction(submitAction)
+        self.present(alert, animated: true)
+    }
+    
+    // MARK: - History
+    @objc func showHistory() {
+        let historyVC = HistoryViewController()
+        historyVC.viewedCities = self.viewedCities
+        historyVC.citySelectionHandler = { [weak self] selectedCity in
+            self?.model.city = selectedCity
+            self?.fetchWeatherWithAlamofire()
+        }
+        navigationController?.pushViewController(historyVC, animated: true)
+    }
 }
 
 //MARK: - Location
@@ -359,3 +440,8 @@ extension ViewController: CLLocationManagerDelegate {
         print("Ошибка геолокации: \(error.localizedDescription)")
     }
 }
+
+
+
+
+
