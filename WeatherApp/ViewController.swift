@@ -1,5 +1,6 @@
 //
 //  ViewController.swift
+//  HistoryViewController
 //  WeatherApp
 //
 //  Created by Aleksandr Shchukin on 16/04/25.
@@ -33,12 +34,18 @@ class ViewController: UIViewController {
     var reachability: Reachability?
     let userDefaults = UserDefaults.standard
     
-    var viewedCities: [String] {
+    var viewedCities: [ViewedCity] {
         get {
-            userDefaults.stringArray(forKey: "viewedCities") ?? []
+            if let data = userDefaults.data(forKey: "viewedCities"),
+               let decoded = try? JSONDecoder().decode([ViewedCity].self, from: data) {
+                return decoded
+            }
+            return []
         }
         set {
-            userDefaults.set(newValue, forKey: "viewedCities")
+            if let encoded = try? JSONEncoder().encode(newValue) {
+                userDefaults.set(encoded, forKey: "viewedCities")
+            }
         }
     }
     
@@ -57,7 +64,7 @@ class ViewController: UIViewController {
         scrollView.snp.makeConstraints {make in
             make.edges.equalToSuperview()
         }
-        
+        trimViewedCitiesSections()
         configureActivityIndicator()
         setupInitialAppearance()
         configureWeatherImageView()
@@ -202,6 +209,11 @@ class ViewController: UIViewController {
             DispatchQueue.main.async {
                 switch response.result {
                 case .success(let weatherData):
+                    // Update viewedCities with new dateViewed before updating model
+                    var updated = self.viewedCities.filter { $0.name != weatherData.name }
+                    updated.append(ViewedCity(name: weatherData.name, dateViewed: Date()))
+                    self.viewedCities = updated
+                    print("🧠 Добавлен город в viewedCities: \(weatherData.name), всего: \(self.viewedCities.count)")
                     self.activityIndicator.stopAnimating()
                     self.refreshControl.endRefreshing()
                     debugPrint("✅ City: \(weatherData.name)")
@@ -215,13 +227,6 @@ class ViewController: UIViewController {
                     
                     let iconCode = weatherData.weather.first?.icon ?? "01d"
                     self.loadWeatherIcon(named: iconCode)
-                    
-                    if !self.viewedCities.contains(weatherData.name) {
-                        var updated = self.viewedCities
-                        updated.append(weatherData.name)
-                        self.viewedCities = updated
-                        
-                    }
                     
                     self.updateUI()
                     
@@ -336,10 +341,36 @@ class ViewController: UIViewController {
         self.present(alert, animated: true)
     }
     
+    // MARK: - Trim viewed cities sections
+    private func trimViewedCitiesSections() {
+        let calendar = Calendar.current
+        let now = Date()
+        
+        var today = viewedCities.filter {
+            calendar.isDate($0.dateViewed, inSameDayAs: now)
+        }.sorted(by: { $0.dateViewed > $1.dateViewed})
+        
+        var allTime = viewedCities.filter {
+            !calendar.isDate($0.dateViewed, inSameDayAs: now)
+        }.sorted(by: { $0.dateViewed > $1.dateViewed})
+        
+        if today.count > 10 {
+            today = Array(today.prefix(10))
+        }
+        
+        if allTime.count > 10 {
+            allTime = Array(allTime.prefix(10))
+        }
+        
+        viewedCities = today + allTime
+    }
+    
     // MARK: - History
     @objc func showHistory() {
+        trimViewedCitiesSections()
         let historyVC = HistoryViewController()
         historyVC.viewedCities = self.viewedCities
+        historyVC.currentCity = self.model.city
         historyVC.citySelectionHandler = { [weak self] selectedCity in
             self?.model.city = selectedCity
             self?.fetchWeatherWithAlamofire()
@@ -381,6 +412,7 @@ class ViewController: UIViewController {
             break
         }
     }
+    
     
 }
 

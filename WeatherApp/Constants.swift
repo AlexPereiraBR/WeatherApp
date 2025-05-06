@@ -18,4 +18,5 @@ struct Constants {
     static let fallbackWeatherIcon = "cloud.slash"
     static let language = "en"
     static let units = "metric"
+    static let viewedCitiesKey = "viewedCities"
 }

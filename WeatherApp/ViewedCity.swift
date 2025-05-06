@@ -6,3 +6,8 @@
 //
 
 import Foundation
+
+struct ViewedCity: Codable, Equatable {
+    let name: String
+    let dateViewed: Date
+}
