@@ -19,6 +19,7 @@ class HistoryViewController: UIViewController, UITableViewDelegate, UITableViewD
     
     private let tableView = UITableView()
     
+    // MARK: - Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
         splitViewedCities()
@@ -26,11 +27,15 @@ class HistoryViewController: UIViewController, UITableViewDelegate, UITableViewD
         title = "History"
         view.backgroundColor = .main
         view.isOpaque = false
+        configureTableView()
+    }
+
+    // MARK: - Table View Configuration
+    private func configureTableView() {
         tableView.isOpaque = false
         view.addSubview(tableView)
         tableView.frame = view.bounds
         tableView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-        
         tableView.delegate = self
         tableView.dataSource = self
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: "CityCell")
@@ -40,6 +45,7 @@ class HistoryViewController: UIViewController, UITableViewDelegate, UITableViewD
         tableView.tableFooterView = UIView()
     }
     
+    // MARK: - UITableViewDataSource
     func numberOfSections(in tableView: UITableView) -> Int {
         return 2
     }
@@ -48,6 +54,7 @@ class HistoryViewController: UIViewController, UITableViewDelegate, UITableViewD
         return section == 0 ? todayCities.count : allTimeCities.count
     }
     
+    // MARK: - Data Preparation
     private func splitViewedCities() {
         let calendar = Calendar.current
         let now = Date()
@@ -63,6 +70,7 @@ class HistoryViewController: UIViewController, UITableViewDelegate, UITableViewD
             .map { $0.name }
     }
 
+    // MARK: - Helpers
     private func prioritizeCurrentCity() {
         guard let current = currentCity else { return }
         if let index = todayCities.firstIndex(of: current) {
@@ -93,7 +101,7 @@ class HistoryViewController: UIViewController, UITableViewDelegate, UITableViewD
         if city == currentCity {
             cell.accessoryType = .checkmark
         } else {
-            cell.accessoryType = .none 
+            cell.accessoryType = .none
         
         }
     
@@ -104,7 +112,7 @@ class HistoryViewController: UIViewController, UITableViewDelegate, UITableViewD
         return section == 0 ? "Today" : "All Time"
     }
     
-    // didSelect делетаный метод и должен быть отделен маркой // MARK: - UITableViewDelegate аналогично и для методов выше (там датасурс)
+    // MARK: - UITableViewDelegate
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         let selectedCity = indexPath.section == 0 ? todayCities[indexPath.row] :
         allTimeCities[indexPath.row]
