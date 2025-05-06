@@ -24,8 +24,7 @@ class ViewController: UIViewController {
     let temperatureLabel = UILabel()
     let containerView = UIView()
     let weatherChartView = UIView()
-    let additionalInfoView = UIView()
-    
+    let additionalInfoView = AdditionalInfoView()
     let locationManager = CLLocationManager()
     
     // MARK: - Model
@@ -60,48 +59,24 @@ class ViewController: UIViewController {
         }
         
         configureActivityIndicator()
-        
         setupInitialAppearance()
-        
         configureWeatherImageView()
         configureCityLabel()
         configureTemperatureLabel()
         configureContainerView()
         configureWeatherChartView()
         configureAdditionalInfoView()
-        
         animateAppearance()
-        
         locationManager.delegate = self
         locationManager.requestWhenInUseAuthorization()
         locationManager.requestLocation()
-        
-        // Reachability: handle denied location + offline + saved city
-        // Это можнт быть в отдельную функцию надо вынести?
-        do {
-            reachability = try Reachability()
-            reachability?.whenUnreachable = { _ in
-                // Тут варнинг о том что метод устарел, в идеале желтых ошибок быть не должно никаких
-                if CLLocationManager.authorizationStatus() == .denied,
-                   let savedCity = self.userDefaults.string(forKey: "savedCity") {
-                    DispatchQueue.main.async {
-                        self.model.city = savedCity
-                        self.fetchWeatherWithAlamofire()
-                    }
-                }
-            }
-            try reachability?.startNotifier()
-        } catch {
-            print("❌ Ошибка запуска Reachability: \(error)")
-            // Отступ скобки
-            }
+        setupReachabilityFallback()
         
         navigationItem.rightBarButtonItem = UIBarButtonItem(title: "City", style: .plain, target: self, action: #selector(promptForCity))
         navigationItem.leftBarButtonItem = UIBarButtonItem(title: "History", style: .plain, target: self, action: #selector(showHistory))
     }
     
     // MARK: - Setup Appearance
-    
     func setupInitialAppearance() {
         let views = [
             weatherImageView,
@@ -120,7 +95,6 @@ class ViewController: UIViewController {
     }
     
     // MARK: - UI Configuration
-    
     func configureActivityIndicator() {
         view.addSubview(activityIndicator)
         activityIndicator.center = view.center
@@ -128,11 +102,8 @@ class ViewController: UIViewController {
     }
     
     func configureWeatherImageView() {
-        // перед всем кодом внутри функции пустых отступов быть не должно
         weatherImageView.contentMode = .scaleAspectFit
-        
         scrollView.addSubview(weatherImageView)
-        
         weatherImageView.snp.makeConstraints {
             $0.top.equalTo(view.safeAreaLayoutGuide).offset(40)
             $0.centerX.equalToSuperview()
@@ -144,9 +115,7 @@ class ViewController: UIViewController {
         cityLabel.text = model.city ?? "Loading..."
         cityLabel.textAlignment = .center
         cityLabel.font = UIFont.systemFont(ofSize: 24, weight: .semibold)
-        
         scrollView.addSubview(cityLabel)
-        
         cityLabel.snp.makeConstraints { make in
             make.top.equalTo(weatherImageView.snp.bottom).offset(20)
             make.centerX.equalToSuperview()
@@ -157,9 +126,7 @@ class ViewController: UIViewController {
         temperatureLabel.text = "\(model.temperature ?? "Loading...")°C"
         temperatureLabel.textAlignment = .center
         temperatureLabel.font = UIFont.boldSystemFont(ofSize: 48)
-        
         scrollView.addSubview(temperatureLabel)
-        
         temperatureLabel.snp.makeConstraints { make in
             make.top.equalTo(cityLabel.snp.bottom).offset(12)
             make.centerX.equalToSuperview()
@@ -169,11 +136,8 @@ class ViewController: UIViewController {
     func configureContainerView() {
         containerView.backgroundColor = .main1
         containerView.layer.cornerRadius = 10
-        
         addShadowToView(containerView)
-        
         scrollView.addSubview(containerView)
-        
         temperatureLabel.snp.makeConstraints { make in
             make.top.equalTo(cityLabel.snp.bottom).offset(32)
             make.left.right.equalToSuperview().inset(24)
@@ -184,11 +148,8 @@ class ViewController: UIViewController {
     func configureWeatherChartView() {
         weatherChartView.backgroundColor = .main1
         weatherChartView.layer.cornerRadius = 10
-        
         addShadowToView(weatherChartView)
-        
         scrollView.addSubview(weatherChartView)
-        
         weatherChartView.snp.makeConstraints { make in
             make.top.equalTo(containerView.snp.bottom).offset(400)
             make.left.right.equalToSuperview().inset(24)
@@ -199,52 +160,13 @@ class ViewController: UIViewController {
     func configureAdditionalInfoView() {
         additionalInfoView.backgroundColor = .main1
         additionalInfoView.layer.cornerRadius = 10
-        
         addShadowToView(additionalInfoView)
-        
-        updateAdditionalInfoViewContent()
-        
         scrollView.addSubview(additionalInfoView)
         additionalInfoView.snp.makeConstraints { make in
             make.top.equalTo(weatherChartView.snp.bottom).offset(24)
             make.left.right.equalToSuperview().inset(24)
             make.height.equalTo(140)
         }
-    }
-    func updateAdditionalInfoViewContent() {
-        additionalInfoView.subviews.forEach { $0.removeFromSuperview() }
-        // Сделай отдельный класс для этого втю и размести в отдельном файле. А тут сделай вызов ит задавай данные
-        let humidityLabel = UILabel()
-        humidityLabel.text = "Влажность: \(model.humidity ?? "__")"
-        humidityLabel.font = UIFont.systemFont(ofSize:16)
-        
-        let pressureLabel = UILabel()
-        pressureLabel.text = "Давление: \(model.pressure ?? "__")"
-        pressureLabel.font = UIFont.systemFont(ofSize:16)
-        
-        let windLabel = UILabel()
-        windLabel.text = "Ветер: \(model.windSpeed ?? "__")"
-        windLabel.font = UIFont.systemFont(ofSize:16)
-        
-        additionalInfoView.addSubview(humidityLabel)
-        additionalInfoView.addSubview(pressureLabel)
-        additionalInfoView.addSubview(windLabel)
-        
-        humidityLabel.snp.makeConstraints { make in
-            make.top.equalToSuperview().inset(16)
-            make.left.right.equalToSuperview().inset(12)
-        }
-        
-        pressureLabel.snp.makeConstraints { make in
-            make.top.equalTo(humidityLabel.snp.bottom).offset(8)
-            make.left.right.equalToSuperview().inset(12)
-        }
-        
-        windLabel.snp.makeConstraints { make in
-            make.top.equalTo(pressureLabel.snp.bottom).offset(8)
-            make.left.right.equalToSuperview().inset(12)
-        }
-        
     }
     
     func animateAppearance() {
@@ -268,16 +190,13 @@ class ViewController: UIViewController {
     }
     
     //MARK: - Networking
-    
     func fetchWeatherWithAlamofire() {
         activityIndicator.startAnimating()
-        // Создай отдельную структуру в отдельном файле с названием Constants и вынеси ключевые константы туда, апи кей должен лежать 100% отдельно. Оброазайся к константам через static заодно изучи почему именно через него и что это такое
-        let apiKey = "82b63b257fa6537513b6d200de7e71e4"
         guard let city = model.city else {
             return
         }
-        // Адреса тоже заносят в константы, особенно первую неизменяемую часть адреса, подумай что здесь нужно вынести в константы
-        let url = "https://api.openweathermap.org/data/2.5/weather?q=\(city)&appid=\(apiKey)&units=metric&lang=ru"
+        
+        let url = "\(Constants.baseURL)?q=\(city)&appid=\(Constants.apiKey)&units=\(Constants.units)&lang=\(Constants.language)"
         
         AF.request(url).responseDecodable(of: WeatherResponse.self) { response in
             DispatchQueue.main.async {
@@ -285,7 +204,7 @@ class ViewController: UIViewController {
                 case .success(let weatherData):
                     self.activityIndicator.stopAnimating()
                     self.refreshControl.endRefreshing()
-                    print("✅ Город: \(weatherData.name)")
+                    debugPrint("✅ City: \(weatherData.name)")
                     
                     self.model.city = weatherData.name
                     self.model.temperature = String(Int(weatherData.main.temp))
@@ -305,8 +224,8 @@ class ViewController: UIViewController {
                     }
                     
                     self.updateUI()
-                // у фейлур есть ошибка с текстом, ть можешь ее показывать в своей функции на эррор алерт (failure(let error))
-                case .failure:
+                    
+                case .failure(let error):
                     //Check for 404/city not found
                     if let data = response.data,
                        let json = try? JSONSerialization.jsonObject(with: data) as?
@@ -318,7 +237,7 @@ class ViewController: UIViewController {
                     }
                     self.activityIndicator.stopAnimating()
                     self.refreshControl.endRefreshing()
-                    self.showErrorAlert(message: "Не удалось загрузить данные о погоде. Проверьте подключение к интернету и попробуйте снова")
+                    self.showErrorAlert(message: error.localizedDescription)
                 }
             }
             
@@ -327,9 +246,7 @@ class ViewController: UIViewController {
     
     func fetchWeatherByCoordinates(lat: Double, lon: Double) {
         activityIndicator.startAnimating()
-        let apiKey = "82b63b257fa6537513b6d200de7e71e4"
-        let url = "https://api.openweathermap.org/data/2.5/weather?lat=\(lat)&lon=\(lon)&appid=\(apiKey)&units=metric&lang=ru"
-        
+        let url = "\(Constants.baseURL)?lat=\(lat)&lon=\(lon)&appid=\(Constants.apiKey)&units=\(Constants.units)&lang=\(Constants.language)"
         AF.request(url).responseDecodable(of: WeatherResponse.self) { response in
             switch response.result {
             case .success(let weatherData):
@@ -368,17 +285,15 @@ class ViewController: UIViewController {
             case .failure:
                 // Set local fallback weather icon
                 DispatchQueue.main.async {
-                    self.weatherImageView.image = UIImage(systemName: "cloud.slash")
+                    self.weatherImageView.image = UIImage(systemName: Constants.fallbackWeatherIcon)
                 }
             }
         }
         
     }
     //MARK: - Update UI
-    
     func updateUI() {
-        // отступы
-        updateAdditionalInfoViewContent()
+        additionalInfoView.configure(humidity: model.humidity, pressure: model.pressure, windSpeed: model.windSpeed)
         if let city = model.city {
             cityLabel.text = city
         } else {
@@ -387,15 +302,15 @@ class ViewController: UIViewController {
         
         if let temperature = model.temperature {
             temperatureLabel.text = "\(temperature)°C"
-  
+            
         }
         
     }
     
     func showErrorAlert(message: String) {
-        // здесь тоже можно вынести в константы
-        let alert = UIAlertController(title: "Ошибка", message: message, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "OK", style: .default))
+        
+        let alert = UIAlertController(title: Constants.alertTitleError, message: message, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: Constants.alertButtonOK, style: .default))
         DispatchQueue.main.async {
             self.present(alert, animated: true)
         }
@@ -431,6 +346,42 @@ class ViewController: UIViewController {
         }
         navigationController?.pushViewController(historyVC, animated: true)
     }
+    
+    // MARK: - Reachability Fallback
+    private func setupReachabilityFallback() {
+        do {
+            reachability = try Reachability()
+            reachability?.whenUnreachable = { _ in
+            }
+            try reachability?.startNotifier()
+        } catch {
+            print("❌ Ошибка запуска Reachability: \(error)")
+            
+        }
+        
+    }
+    
+    // MARK: - Location denied logic moved to locationManagerDidChangeAuthorization
+    func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        let status = manager.authorizationStatus
+        
+        switch status {
+        case .notDetermined:
+            break
+        case .restricted, .denied:
+            if let savedCity = userDefaults.string(forKey: "savedCity") {
+                DispatchQueue.main.async {
+                    self.model.city = savedCity
+                    self.fetchWeatherWithAlamofire()
+                }
+            }
+        case .authorizedWhenInUse, .authorizedAlways:
+            break
+        @unknown default:
+            break
+        }
+    }
+    
 }
 
 //MARK: - Location
@@ -444,11 +395,6 @@ extension ViewController: CLLocationManagerDelegate {
     }
     
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-        print("Ошибка геолокации: \(error.localizedDescription)")
+        debugPrint("Ошибка геолокации: \(error.localizedDescription)")
     }
 }
-
-
-
-
-
