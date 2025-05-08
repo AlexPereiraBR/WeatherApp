@@ -14,7 +14,15 @@ import Network
 import Reachability
 
 class ViewController: UIViewController {
+    var currentIconCode: String?
     
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+    }
+
+    override init(nibName nibNameOrNil: String?, bundle nibBundleOrNil: Bundle?) {
+        super.init(nibName: nibNameOrNil, bundle: nibBundleOrNil)
+    }
     // MARK: - UI Elements
     
     let scrollView = UIScrollView()
@@ -53,17 +61,15 @@ class ViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
         view.backgroundColor = .main
-        
         scrollView.alwaysBounceVertical = true
         scrollView.refreshControl = refreshControl
         refreshControl.addTarget(self, action: #selector(refreshWeatherData), for: .valueChanged)
-        
         view.addSubview(scrollView)
         scrollView.snp.makeConstraints {make in
             make.edges.equalToSuperview()
         }
+        
         trimViewedCitiesSections()
         configureActivityIndicator()
         setupInitialAppearance()
@@ -81,6 +87,7 @@ class ViewController: UIViewController {
         
         navigationItem.rightBarButtonItem = UIBarButtonItem(title: "City", style: .plain, target: self, action: #selector(promptForCity))
         navigationItem.leftBarButtonItem = UIBarButtonItem(title: "History", style: .plain, target: self, action: #selector(showHistory))
+        
     }
     
     // MARK: - Setup Appearance
@@ -141,7 +148,7 @@ class ViewController: UIViewController {
     }
     
     func configureContainerView() {
-        containerView.backgroundColor = .main1
+        containerView.backgroundColor = UIColor.white.withAlphaComponent(0.30)
         containerView.layer.cornerRadius = 10
         addShadowToView(containerView)
         scrollView.addSubview(containerView)
@@ -153,7 +160,7 @@ class ViewController: UIViewController {
     }
     
     func configureWeatherChartView() {
-        weatherChartView.backgroundColor = .main1
+        weatherChartView.backgroundColor = UIColor.white.withAlphaComponent(0.30)
         weatherChartView.layer.cornerRadius = 10
         addShadowToView(weatherChartView)
         scrollView.addSubview(weatherChartView)
@@ -165,7 +172,7 @@ class ViewController: UIViewController {
     }
     
     func configureAdditionalInfoView() {
-        additionalInfoView.backgroundColor = .main1
+        additionalInfoView.backgroundColor = UIColor.white.withAlphaComponent(0.30)
         additionalInfoView.layer.cornerRadius = 10
         addShadowToView(additionalInfoView)
         scrollView.addSubview(additionalInfoView)
@@ -213,10 +220,8 @@ class ViewController: UIViewController {
                     var updated = self.viewedCities.filter { $0.name != weatherData.name }
                     updated.append(ViewedCity(name: weatherData.name, dateViewed: Date()))
                     self.viewedCities = updated
-                    print("🧠 Добавлен город в viewedCities: \(weatherData.name), всего: \(self.viewedCities.count)")
                     self.activityIndicator.stopAnimating()
                     self.refreshControl.endRefreshing()
-                    debugPrint("✅ City: \(weatherData.name)")
                     
                     self.model.city = weatherData.name
                     self.model.temperature = String(Int(weatherData.main.temp))
@@ -226,6 +231,8 @@ class ViewController: UIViewController {
                     self.model.windSpeed = "\(weatherData.wind.speed) m/s"
                     
                     let iconCode = weatherData.weather.first?.icon ?? "01d"
+                    self.currentIconCode = iconCode
+                    self.applyGradientBackground(for: iconCode)
                     self.loadWeatherIcon(named: iconCode)
                     
                     self.updateUI()
@@ -265,6 +272,8 @@ class ViewController: UIViewController {
                 self.model.windSpeed = "\(weatherData.wind.speed) m/s"
                 
                 let iconCode = weatherData.weather.first?.icon ?? "01d"
+                self.currentIconCode = iconCode
+                self.applyGradientBackground(for: iconCode)
                 self.loadWeatherIcon(named: iconCode)
                 
                 self.updateUI()
@@ -277,25 +286,30 @@ class ViewController: UIViewController {
     }
     
     func loadWeatherIcon(named iconCode: String) {
+        if let cachedImage = ImageCacheManager.shared.image(forKey: iconCode) {
+            self.weatherImageView.image = cachedImage
+            return
+        }
+
         let iconURL = "https://openweathermap.org/img/wn/\(iconCode)@2x.png"
         
         AF.request(iconURL).responseData { response in
             switch response.result {
             case .success(let data):
                 if let image = UIImage(data: data) {
+                    ImageCacheManager.shared.set(image, forKey: iconCode)
                     DispatchQueue.main.async {
                         self.weatherImageView.image = image
                     }
                 }
             case .failure:
-                // Set local fallback weather icon
                 DispatchQueue.main.async {
                     self.weatherImageView.image = UIImage(systemName: Constants.fallbackWeatherIcon)
                 }
             }
         }
-        
     }
+    
     //MARK: - Update UI
     func updateUI() {
         additionalInfoView.configure(humidity: model.humidity, pressure: model.pressure, windSpeed: model.windSpeed)
@@ -319,6 +333,13 @@ class ViewController: UIViewController {
         DispatchQueue.main.async {
             self.present(alert, animated: true)
         }
+    }
+    
+   // MARK: - Gradient Background
+    func applyGradientBackground(for iconCode: String) {
+        view.layer.sublayers?.removeAll(where: { $0.name == "weatherGradient" })
+        let gradient = WeatherBackgroundManager.gradientLayer(for: iconCode, in: view.bounds)
+        view.layer.insertSublayer(gradient, at: 0)
     }
     
     @objc private func refreshWeatherData() {
@@ -371,6 +392,9 @@ class ViewController: UIViewController {
         let historyVC = HistoryViewController()
         historyVC.viewedCities = self.viewedCities
         historyVC.currentCity = self.model.city
+        if let iconCode = currentIconCode {
+            historyVC.gradientColors = WeatherBackgroundManager.colors(for: iconCode).map { $0.cgColor }
+        }
         historyVC.citySelectionHandler = { [weak self] selectedCity in
             self?.model.city = selectedCity
             self?.fetchWeatherWithAlamofire()
@@ -395,7 +419,6 @@ class ViewController: UIViewController {
     // MARK: - Location denied logic moved to locationManagerDidChangeAuthorization
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         let status = manager.authorizationStatus
-        
         switch status {
         case .notDetermined:
             break
@@ -413,7 +436,6 @@ class ViewController: UIViewController {
         }
     }
     
-    
 }
 
 //MARK: - Location
@@ -428,5 +450,14 @@ extension ViewController: CLLocationManagerDelegate {
     
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
         debugPrint("Ошибка геолокации: \(error.localizedDescription)")
+    }
+}
+
+// MARK: - Favorite Cities Helper
+extension ViewController {
+    // Проверка, находится ли город в избранном
+    func isFavorite(city: String) -> Bool {
+        let favorites = UserDefaults.standard.stringArray(forKey: "FavoriteCities") ?? []
+        return favorites.contains(city)
     }
 }
