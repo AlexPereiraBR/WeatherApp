@@ -11,6 +11,7 @@ import Foundation
 struct Constants {
     static let apiKey = "82b63b257fa6537513b6d200de7e71e4"
     static let baseURL = "https://api.openweathermap.org/data/2.5/weather"
+    static let forecastURL = "https://api.openweathermap.org/data/2.5/forecast"
     static let savedCityKey = "savedCity"
     static let viewCitiesKey = "viewCities"
     static let alertTitleError = "Error"
