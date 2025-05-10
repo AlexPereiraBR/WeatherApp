@@ -13,24 +13,32 @@ class ForecastViewController: UIViewController {
     
     // MARK: - Properties
     var iconCode: String?
-    var city: String?
+    let city: String
+    
+    init(city: String, iconCode: String?) {
+        self.city = city
+        self.iconCode = iconCode
+        super.init(nibName: nil, bundle: nil)
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
     private let tableView = UITableView()
     private var days: [ForecastDay] = []
-    
+    private let screenTitle = "Weekly Forecast"
     // MARK: - Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        title = "Weekly Forecast"
+        title = screenTitle
         view.backgroundColor = .main
         
         setupTableView()
-        guard let city = city else {
-            return
-        }
         fetchForecast(for: city)
+        
     }
-    
     // MARK: - Layout
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
@@ -57,11 +65,13 @@ class ForecastViewController: UIViewController {
     private func fetchForecast(for city: String) {
         let url = "\(Constants.forecastURL)?q=\(city)&appid=\(Constants.apiKey)&units=\(Constants.units)&lang=\(Constants.language)"
         
-        AF.request(url).responseDecodable(of: ForecastResponse.self) { [weak self] resp in
+        AF.request(url).responseDecodable(of: ForecastResponse.self) { [weak self] response in
             guard let self = self else { return }
-            switch resp.result {
+            switch response.result {
             case .success(let forecastData):
+                //Календарь для того что бы сгруппировать элементы по дню (обрезаем время до 00:00 так все данные за день попадают в одну группу.
                 let calendar = Calendar.current
+            
                 let grouped = Dictionary(grouping: forecastData.list) { item in
                     calendar.startOfDay(for: Date(timeIntervalSince1970: item.dt))
                 }

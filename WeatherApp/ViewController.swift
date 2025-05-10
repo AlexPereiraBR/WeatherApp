@@ -361,11 +361,8 @@ class ViewController: UIViewController {
 
     // MARK: - Navigation / Forecast
     @objc func showForecast() {
-        let vc = ForecastViewController()
-        vc.city = model.city
-        if let iconCode = currentIconCode {
-            vc.iconCode = iconCode
-        }
+        let vc = ForecastViewController(city: model.city ?? "Unknown", iconCode: currentIconCode)
+      
         navigationController?.pushViewController(vc, animated: true)
     }
     
