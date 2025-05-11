@@ -15,17 +15,9 @@ import Reachability
 
 class ViewController: UIViewController {
     // MARK: - Properties
-    var currentIconCode: String?
     
-    //MARK: - Initializers
-        required init?(coder: NSCoder) {
-        super.init(coder: coder)
-    }
-
-    override init(nibName nibNameOrNil: String?, bundle nibBundleOrNil: Bundle?) {
-        super.init(nibName: nibNameOrNil, bundle: nibBundleOrNil)
-    }
-    // MARK: - UI Elements
+    // UI
+    
     let scrollView = UIScrollView()
     let refreshControl = UIRefreshControl()
     let activityIndicator = UIActivityIndicatorView(style: .large)
@@ -35,12 +27,19 @@ class ViewController: UIViewController {
     let containerView = UIView()
     let weatherChartView = UIView()
     let additionalInfoView = AdditionalInfoView()
+
+    // Location
+    
     let locationManager = CLLocationManager()
 
-    // MARK: - Model
+    // Data / Model
+    
     var model = WeatherModel()
+    var currentIconCode: String?
     var reachability: Reachability?
     let userDefaults = UserDefaults.standard
+    
+        // MARK: - Computed Properties
 
     var viewedCities: [ViewedCity] {
         get {
@@ -70,6 +69,7 @@ class ViewController: UIViewController {
             make.edges.equalToSuperview()
         }
         // Create bar button items
+        
         let historyButton = UIBarButtonItem(title: "History", style: .plain, target: self, action: #selector(showHistory))
         let cityButton = UIBarButtonItem(title: "City", style: .plain, target: self, action: #selector(promptForCity))
         let forecastButton = UIBarButtonItem(title: "7-day", style: .plain, target: self, action: #selector(showForecast))
@@ -94,6 +94,7 @@ class ViewController: UIViewController {
     }
     
     // MARK: - UI Setup
+    
     func setupInitialAppearance() {
         let views = [
             weatherImageView,
@@ -112,6 +113,7 @@ class ViewController: UIViewController {
     }
     
     // MARK: - UI Configuration
+    
     func configureActivityIndicator() {
         view.addSubview(activityIndicator)
         activityIndicator.center = view.center
@@ -207,6 +209,7 @@ class ViewController: UIViewController {
     }
     
     // MARK: - Networking
+    
     func fetchWeatherWithAlamofire() {
         activityIndicator.startAnimating()
         guard let city = model.city else {
@@ -261,6 +264,7 @@ class ViewController: UIViewController {
                 let iconCode = weatherData.weather.first?.icon ?? "01d"
                 self.updateBackgroundAndIcon(using: iconCode)
                 self.updateUI()
+                
             case .failure:
                 self.activityIndicator.stopAnimating()
                 self.refreshControl.endRefreshing()
@@ -309,6 +313,7 @@ class ViewController: UIViewController {
     }
     
     //MARK: - Update UI
+    
     func updateUI() {
         additionalInfoView.configure(humidity: model.humidity, pressure: model.pressure, windSpeed: model.windSpeed)
         if let city = model.city {
@@ -325,6 +330,7 @@ class ViewController: UIViewController {
     }
     
     // MARK: - Alerts
+    
     func showErrorAlert(message: String) {
         let alert = UIAlertController(title: Constants.alertTitleError, message: message, preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: Constants.alertButtonOK, style: .default))
@@ -334,6 +340,7 @@ class ViewController: UIViewController {
     }
 
     // MARK: - Gradient
+    
     func applyGradientBackground(for iconCode: String) {
         view.layer.sublayers?.removeAll(where: { $0.name == "weatherGradient" })
         let gradient = WeatherBackgroundManager.gradientLayer(for: iconCode, in: view.bounds)
@@ -345,11 +352,14 @@ class ViewController: UIViewController {
     }
 
     // MARK: - Navigation / City Input
+    
     @objc func promptForCity() {
         let alert = UIAlertController(title: "Введите город", message: nil, preferredStyle: .alert)
         alert.addTextField()
+        
         let submitAction = UIAlertAction(title: "OK", style: .default)
         { [weak self, weak alert] _ in
+            
             guard let city = alert?.textFields?.first?.text, !city.isEmpty else { return }
             self?.userDefaults.set(city, forKey: "savedCity")
             self?.model.city = city
@@ -360,13 +370,15 @@ class ViewController: UIViewController {
     }
 
     // MARK: - Navigation / Forecast
+    
     @objc func showForecast() {
-        let vc = ForecastViewController(city: model.city ?? "Unknown", iconCode: currentIconCode)
+        let forecastViewController = ForecastViewController(city: model.city ?? "Unknown", iconCode: currentIconCode)
       
-        navigationController?.pushViewController(vc, animated: true)
+        navigationController?.pushViewController(forecastViewController, animated: true)
     }
     
     // MARK: - Trim viewed cities sections
+    
     private func trimViewedCitiesSections() {
         let calendar = Calendar.current
         let now = Date()
@@ -391,22 +403,26 @@ class ViewController: UIViewController {
     }
     
     // MARK: - Navigation / History
+    
     @objc func showHistory() {
         trimViewedCitiesSections()
-        let historyVC = HistoryViewController()
-        historyVC.viewedCities = self.viewedCities
-        historyVC.currentCity = self.model.city
+        
+        let historyViewController = HistoryViewController()
+        historyViewController.viewedCities = self.viewedCities
+        historyViewController.currentCity = self.model.city
+        
         if let iconCode = currentIconCode {
-            historyVC.gradientColors = WeatherBackgroundManager.colors(for: iconCode).map { $0.cgColor }
+            historyViewController.gradientColors = WeatherBackgroundManager.colors(for: iconCode).map { $0.cgColor }
         }
-        historyVC.citySelectionHandler = { [weak self] selectedCity in
+        historyViewController.citySelectionHandler = { [weak self] selectedCity in
             self?.model.city = selectedCity
             self?.fetchWeatherWithAlamofire()
         }
-        navigationController?.pushViewController(historyVC, animated: true)
+        navigationController?.pushViewController(historyViewController, animated: true)
     }
     
     // MARK: - Reachability
+    
     private func setupReachabilityFallback() {
         do {
             reachability = try Reachability()
@@ -421,20 +437,24 @@ class ViewController: UIViewController {
     }
     
     // MARK: - Location Authorization
+    
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         let status = manager.authorizationStatus
         switch status {
         case .notDetermined:
             break
         case .restricted, .denied:
+            
             if let savedCity = userDefaults.string(forKey: "savedCity") {
                 DispatchQueue.main.async {
                     self.model.city = savedCity
                     self.fetchWeatherWithAlamofire()
                 }
             }
+            
         case .authorizedWhenInUse, .authorizedAlways:
             break
+            
         @unknown default:
             break
         }
@@ -443,6 +463,7 @@ class ViewController: UIViewController {
 }
 
 //MARK: - Location
+
 extension ViewController: CLLocationManagerDelegate {
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         if let location = locations.first {
@@ -458,9 +479,11 @@ extension ViewController: CLLocationManagerDelegate {
 }
 
 // MARK: - Favorite Cities Helper
+
 extension ViewController {
     func isFavorite(city: String) -> Bool {
         let favorites = UserDefaults.standard.stringArray(forKey: "FavoriteCities") ?? []
+        
         return favorites.contains(city)
     }
 }

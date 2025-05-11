@@ -9,6 +9,9 @@ import Foundation
 import UIKit
 
 enum WeatherBackgroundManager {
+
+    // MARK: - Gradient Layer
+
     static func gradientLayer(for iconCode: String, in frame: CGRect) -> CAGradientLayer {
         let gradient = CAGradientLayer()
         gradient.name = "weatherGradient"
@@ -42,7 +45,9 @@ enum WeatherBackgroundManager {
         
         return gradient
     }
-    
+
+    // MARK: - Color Mapping
+
     static func colors(for iconCode: String) -> [UIColor] {
         switch iconCode {
         case "01d":

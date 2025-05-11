@@ -7,6 +7,8 @@
 
 import Foundation
 
+//MARK: - ForecastDay Model
+
 struct ForecastDay  {
     let date: Date
     let temperature: Int

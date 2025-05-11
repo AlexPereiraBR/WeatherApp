@@ -8,6 +8,7 @@
 import Foundation
 
 // MARK: - Forecast Response Model
+
 struct ForecastResponse: Decodable {
     let list: [ForecastItem]
 

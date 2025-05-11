@@ -11,13 +11,18 @@ import SnapKit
 
 class ForecastDayCell: UITableViewCell {
     
+    //MARK: - Type Properties
+    
+    static let reuseID = "ForecastDayCell"
+    
     // MARK: - Properties
+    
     private let dayLabel = UILabel()
     private let tempLabel = UILabel()
     private let iconView = UIImageView()
-    static let reuseID = "ForecastDayCell"
-    
+   
     // MARK: - Initializers
+    
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
         
@@ -45,12 +50,15 @@ class ForecastDayCell: UITableViewCell {
     required init?(coder: NSCoder) { fatalError() }
     
     // MARK: - Configuration
+    
     func configure(with day: ForecastDay) {
+    
         let df = DateFormatter()
         df.dateFormat = "EEE"   // Mon, Tue, …
+        
         dayLabel.text = df.string(from: day.date)
         tempLabel.text = "\(day.temperature)°C"
-        // Для иконки можно загрузить через ImageCacheManager, либо напрямую:
+        
         let url = URL(string: "https://openweathermap.org/img/wn/\(day.iconCode)@2x.png")!
         URLSession.shared.dataTask(with: url) { data, _, _ in
             guard let data = data, let img = UIImage(data: data) else { return }

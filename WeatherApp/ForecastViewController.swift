@@ -12,8 +12,16 @@ import Alamofire
 class ForecastViewController: UIViewController {
     
     // MARK: - Properties
+    
     var iconCode: String?
     let city: String
+    
+    private let tableView = UITableView()
+    private var days: [ForecastDay] = []
+    private let screenTitle = "Weekly Forecast"
+    private let defaultIconCode = "01d"
+    
+    //MARK: - Init
     
     init(city: String, iconCode: String?) {
         self.city = city
@@ -25,21 +33,20 @@ class ForecastViewController: UIViewController {
         fatalError("init(coder:) has not been implemented")
     }
     
-    private let tableView = UITableView()
-    private var days: [ForecastDay] = []
-    private let screenTitle = "Weekly Forecast"
     // MARK: - Lifecycle
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
         title = screenTitle
         view.backgroundColor = .main
-        
         setupTableView()
         fetchForecast(for: city)
         
     }
+    
     // MARK: - Layout
+  
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         
@@ -52,6 +59,7 @@ class ForecastViewController: UIViewController {
     }
     
     // MARK: - UI Setup
+    
     private func setupTableView() {
         tableView.dataSource = self
         tableView.register(ForecastDayCell.self, forCellReuseIdentifier: ForecastDayCell.reuseID)
@@ -62,6 +70,7 @@ class ForecastViewController: UIViewController {
     }
     
     // MARK: - Networking
+    
     private func fetchForecast(for city: String) {
         let url = "\(Constants.forecastURL)?q=\(city)&appid=\(Constants.apiKey)&units=\(Constants.units)&lang=\(Constants.language)"
         
@@ -69,20 +78,17 @@ class ForecastViewController: UIViewController {
             guard let self = self else { return }
             switch response.result {
             case .success(let forecastData):
-                //Календарь для того что бы сгруппировать элементы по дню (обрезаем время до 00:00 так все данные за день попадают в одну группу.
+                
                 let calendar = Calendar.current
-            
+                
                 let grouped = Dictionary(grouping: forecastData.list) { item in
                     calendar.startOfDay(for: Date(timeIntervalSince1970: item.dt))
                 }
+                
                 let sortedDates = grouped.keys.sorted().prefix(7)
+                
                 self.days = sortedDates.compactMap { date in
-                    guard let first = grouped[date]?.first else { return nil }
-                    return ForecastDay(
-                        date: date,
-                        temperature: Int(first.main.temp),
-                        iconCode: first.weather.first?.icon ?? "01d"
-                    )
+                    self.makeForecastDay(from: grouped, for: date)
                 }
                 
                 DispatchQueue.main.async {
@@ -95,17 +101,31 @@ class ForecastViewController: UIViewController {
         }
     }
     
+    private func makeForecastDay(from grouped: [Date: [ForecastResponse.ForecastItem]], for date: Date) -> ForecastDay? {
+        guard let first = grouped[date]?.first else { return nil }
+
+        return ForecastDay(
+            date: date,
+            temperature: Int(first.main.temp),
+            iconCode: first.weather.first?.icon ?? defaultIconCode
+        )
+    }
+    
 }
 
 // MARK: - UITableViewDataSource
+
 extension ForecastViewController: UITableViewDataSource {
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        
         return days.count
     }
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        
         let cell = tableView.dequeueReusableCell(withIdentifier: ForecastDayCell.reuseID, for: indexPath) as! ForecastDayCell
         cell.configure(with: days[indexPath.row])
         cell.backgroundColor = .clear
+        
         return cell
     }
 }
