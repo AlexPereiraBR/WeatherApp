@@ -7,6 +7,8 @@
 
 import Foundation
 
+// MARK: - WeatherResponse
+
 struct WeatherResponse: Decodable {
     let name: String
     let main: MainWeatherInfo
@@ -14,15 +16,21 @@ struct WeatherResponse: Decodable {
     let wind: WindInfo
 }
 
+// MARK: - MainWeatherInfo
+
 struct MainWeatherInfo: Decodable {
     let temp: Double
     let pressure: Int
     let humidity: Int
 }
 
+// MARK: - WeatherInfo
+
 struct WeatherInfo: Decodable {
     let icon: String
 }
+
+// MARK: - WindInfo
 
 struct WindInfo: Decodable {
     let speed: Double

@@ -10,30 +10,23 @@ import UIKit
 
 class HistoryViewController: UIViewController, UITableViewDelegate, UITableViewDataSource {
     
+    // MARK: - Properties
+
     var viewedCities: [ViewedCity] = []
     var citySelectionHandler: ((String) -> Void)?
     var currentCity: String?
     var todayCities: [String] = []
     var allTimeCities: [String] = []
     var gradientColors: [CGColor]?
-    
-    override func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
-        if let colors = gradientColors {
-            let gradientLayer = CAGradientLayer()
-            gradientLayer.colors = colors
-            gradientLayer.frame = view.bounds
-            view.layer.insertSublayer(gradientLayer, at: 0)
-        }
-    }
+    private let tableView = UITableView()
+
     var favoriteCities: [ViewedCity] {
         let favorites = UserDefaults.standard.stringArray(forKey: "FavoriteCities") ?? []
         return viewedCities.filter { favorites.contains($0.name) }
     }
     
-    private let tableView = UITableView()
-    
     // MARK: - Lifecycle
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         splitViewedCities()
@@ -44,7 +37,18 @@ class HistoryViewController: UIViewController, UITableViewDelegate, UITableViewD
         configureTableView()
     }
     
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        if let colors = gradientColors {
+            let gradientLayer = CAGradientLayer()
+            gradientLayer.colors = colors
+            gradientLayer.frame = view.bounds
+            view.layer.insertSublayer(gradientLayer, at: 0)
+        }
+    }
+    
     // MARK: - Table View Configuration
+    
     private func configureTableView() {
         tableView.isOpaque = false
         view.addSubview(tableView)
@@ -60,6 +64,7 @@ class HistoryViewController: UIViewController, UITableViewDelegate, UITableViewD
     }
     
     // MARK: - UITableViewDataSource
+    
     func numberOfSections(in tableView: UITableView) -> Int {
         return 3
     }
@@ -69,11 +74,13 @@ class HistoryViewController: UIViewController, UITableViewDelegate, UITableViewD
         case 0: return favoriteCities.count
         case 1: return todayCities.count
         case 2: return allTimeCities.count
+            
         default : return 0
         }
     }
     
     // MARK: - Data Preparation
+    
     private func splitViewedCities() {
         let calendar = Calendar.current
         let now = Date()
@@ -90,11 +97,14 @@ class HistoryViewController: UIViewController, UITableViewDelegate, UITableViewD
     }
     
     // MARK: - Helpers
+    
     private func prioritizeCurrentCity() {
         guard let current = currentCity else { return }
+        
         if let index = todayCities.firstIndex(of: current) {
             todayCities.remove(at: index)
             todayCities.insert(current, at: 0) } else
+        
         if let index = allTimeCities.firstIndex(of: current) {
                 allTimeCities.remove(at: index)
                 allTimeCities.insert(current, at: 0)
@@ -122,6 +132,7 @@ class HistoryViewController: UIViewController, UITableViewDelegate, UITableViewD
         case 2: city = allTimeCities[indexPath.row]
         default : city = ""
         }
+        
         cell.textLabel?.text = city
         if city == currentCity {
             cell.accessoryType = .checkmark
@@ -138,19 +149,24 @@ class HistoryViewController: UIViewController, UITableViewDelegate, UITableViewD
         case 0: return "Favorites"
         case 1: return "Today"
         case 2: return "All time"
+            
         default: return nil
         }
     }
     
     // MARK: - UITableViewDelegate
+    
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         let selectedCity: String
+        
         switch indexPath.section {
         case 0: selectedCity = favoriteCities[indexPath.row].name
         case 1: selectedCity = todayCities[indexPath.row]
         case 2: selectedCity = allTimeCities[indexPath.row]
+            
         default: return
         }
+        
         citySelectionHandler?(selectedCity)
         navigationController?.popViewController(animated: true)
     }
@@ -159,8 +175,9 @@ class HistoryViewController: UIViewController, UITableViewDelegate, UITableViewD
         if editingStyle == .delete {
             switch indexPath.section {
             case 0:
-                // Удаляем из избранных
+                
                 let city = favoriteCities[indexPath.row].name
+                
                 var favorites = UserDefaults.standard.stringArray(forKey: "FavoriteCities") ?? []
                 favorites.removeAll { $0 == city }
                 UserDefaults.standard.set(favorites, forKey: "FavoriteCities")
@@ -174,9 +191,10 @@ class HistoryViewController: UIViewController, UITableViewDelegate, UITableViewD
             
             tableView.deleteRows(at: [indexPath], with: .automatic)
             
-            // Обновляем сохранённую историю
             let updated = todayCities + allTimeCities
+            
             let updatedObjects = updated.map { ViewedCity(name: $0, dateViewed: Date()) }
+            
             if let encoded = try? JSONEncoder().encode(updatedObjects) {
                 UserDefaults.standard.set(encoded, forKey: Constants.viewedCitiesKey)
             }
@@ -189,13 +207,16 @@ class HistoryViewController: UIViewController, UITableViewDelegate, UITableViewD
         case 0: city = favoriteCities[indexPath.row].name
         case 1: city = todayCities[indexPath.row]
         case 2: city = allTimeCities[indexPath.row]
+            
         default: return nil
         }
         
         var favorites = UserDefaults.standard.stringArray(forKey: "FavoriteCities") ?? []
+        
         let isFavorite = favorites.contains(city)
         
         let title = isFavorite ? "Remove ⭐️" : "Add favorites ⭐️"
+        
         let action = UIContextualAction(style: .normal, title: title) { [weak self] _, _, completion in
             
             guard let self = self else { return }

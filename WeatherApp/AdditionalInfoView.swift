@@ -10,9 +10,13 @@ import UIKit
 import SnapKit
 
 final class AdditionalInfoView: UIView {
+    
+    // MARK: - UI Elements
     private let humidityLabel = UILabel()
     private let pressureLabel = UILabel()
     private let windLabel = UILabel()
+    
+    // MARK: - Initializers
     
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -24,6 +28,8 @@ final class AdditionalInfoView: UIView {
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
+    
+    // MARK: - Setup
     
     private func setupViews() {
         [humidityLabel, pressureLabel, windLabel].forEach {
@@ -46,6 +52,8 @@ final class AdditionalInfoView: UIView {
             $0.left.right.equalToSuperview().inset(12)
         }
     }
+    
+    // MARK: - Confirufation
     
     func configure(humidity: String?, pressure: String?, windSpeed: String?) {
         humidityLabel.text = "Humidity: \(humidity ?? "__")"
