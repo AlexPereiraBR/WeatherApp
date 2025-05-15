@@ -60,3 +60,57 @@ WeatherApp — это iOS-приложение, которое показыва�
 📄 Лицензия
 
 Проект открыт в обучающих целях. Все API и изображения принадлежат их владельцам.
+
+This is my first Pet-project
+
+🌦️ WeatherApp
+
+WeatherApp is a  iOS application that displays the current weather and 7-day forecast using clean architecture and up-to-date development practices.
+
+The app focuses on:
+	•	code clarity and maintainability,
+	•	a responsive and visually appealing interface,
+	•	browsing history,
+	•	offline access through caching and favorites.
+
+⸻
+
+📱 Features
+	•	📍 Automatic location detection with manual city input option
+	•	🌤️ Current weather with icon and key weather parameters
+	•	📊 7-day forecast with visual layout
+	•	🕓 Viewing history, split into “Today” and “All Time”
+	•	⭐ Add cities to favorites
+	•	🌈 Dynamic background (gradient based on weather conditions)
+	•	🌙 Light and dark theme support
+	•	⚙️ Error handling and offline fallback using Reachability
+	•	🔧 Image caching with a custom ImageCacheManager
+
+⸻
+
+🧱 Architecture & Technologies
+	•	UIKit + SnapKit — for layout and interface building
+	•	Alamofire — for working with OpenWeatherMap API
+	•	CLLocationManager — for location-based weather
+	•	NSCache, UserDefaults — for caching and local storage
+	•	SwiftLint — for style and code quality enforcement
+	•	MVC + service managers — clean and testable architecture
+
+⸻
+
+🔌 API
+
+The app uses the OpenWeatherMap API.
+To run the project, register your API key at openweathermap.org and set it in Constants.swift.
+
+⸻
+
+📌 Requirements
+	•	iOS 15.0+
+	•	Xcode 15+
+
+⸻
+
+📄 License
+
+This project is open for educational purposes. All weather data and icons belong to their respective providers.
